@@ -1,4 +1,4 @@
-package duospire.patches.setup;
+package duospire.patches.gen;
 
 import basemod.BaseMod;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;

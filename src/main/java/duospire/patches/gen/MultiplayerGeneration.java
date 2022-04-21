@@ -1,9 +1,10 @@
-package duospire.patches.setup;
+package duospire.patches.gen;
 
 import basemod.BaseMod;
 import com.megacrit.cardcrawl.actions.AbstractGameAction;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import duospire.DuoSpire;
+import duospire.util.NotDeprecatedFilter;
 import javassist.*;
 import javassist.bytecode.Descriptor;
 import javassist.expr.*;
@@ -42,10 +43,12 @@ public class MultiplayerGeneration {
 
         ClassFilter cardFilter = new AndClassFilter(
                 new NotClassFilter(new InterfaceOnlyClassFilter()),
+                new NotDeprecatedFilter(),
                 new SubclassClassFilter(AbstractCard.class)
         );
         ClassFilter actionFilter = new AndClassFilter(
                 new NotClassFilter(new InterfaceOnlyClassFilter()),
+                new NotDeprecatedFilter(),
                 new SubclassClassFilter(AbstractGameAction.class)
         );
 
@@ -234,10 +237,11 @@ public class MultiplayerGeneration {
 
                         if (altParams != null) {
                             clz.removeConstructor(con);
-                            CtConstructor replacement = new CtConstructor(altParams, clz);
+                            CtConstructor replacement = new CtConstructor(con, clz, classMap);
+                            /*CtConstructor replacement = new CtConstructor(altParams, clz);
                             replacement.setModifiers(con.getModifiers());
                             replacement.setExceptionTypes(con.getExceptionTypes());
-                            replacement.setBody(con, classMap);
+                            replacement.setBody(con, classMap);*/
                             clz.addConstructor(replacement);
                         }
                     }
@@ -316,7 +320,12 @@ public class MultiplayerGeneration {
                 callsSuper = false;
                 constructor.instrument(this);
                 if (callsSuper) {
-                    constructor.insertAfter("this.cardID = \"" + NAME_PREFIX + ":\" + this.cardID;");
+                    constructor.insertAfter(
+                        "{" +
+                                "this.cardID = \"" + NAME_PREFIX + ":\" + this.cardID;" +
+                                "this.color = " + EnumPlace.class.getName() + ".getAltColor(this.color);" +
+                        "}");
+
                 }
             }
             //I could theoretically go through the constructor calls and figure out what parameter is used as ID and then modify it, but that sounds like a pain in the ass

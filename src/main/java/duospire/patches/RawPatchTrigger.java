@@ -4,7 +4,9 @@ import com.evacipated.cardcrawl.modthespire.Loader;
 import com.evacipated.cardcrawl.modthespire.ModInfo;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
-import duospire.patches.setup.MultiplayerGeneration;
+import duospire.patches.gen.CharacterColorEnumFields;
+import duospire.patches.gen.MultiplayerGeneration;
+import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtBehavior;
 import javassist.NotFoundException;
@@ -18,7 +20,7 @@ import java.net.URISyntaxException;
         method = SpirePatch.CONSTRUCTOR
 )
 public class RawPatchTrigger {
-    public static void Raw(CtBehavior ctBehavior) throws NotFoundException {
+    public static void Raw(CtBehavior ctBehavior) throws NotFoundException, IllegalAccessException, NoSuchFieldException, ClassNotFoundException, CannotCompileException {
         System.out.println("Starting raw patches.");
 
         ClassFinder finder = new ClassFinder();
@@ -36,6 +38,10 @@ public class RawPatchTrigger {
         }
 
         ClassPool pool = ctBehavior.getDeclaringClass().getClassPool();
+
+        System.out.println("Generating card colors.");
+        CharacterColorEnumFields.generate(pool);
+
         MultiplayerGeneration.patch(finder, pool);
 
         System.out.println("Raw patches complete.");
