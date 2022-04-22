@@ -1,7 +1,9 @@
 package duospire.patches.visual;
 
+import basemod.BaseMod;
+import basemod.patches.com.megacrit.cardcrawl.screens.SingleCardViewPopup.BackgroundFix;
 import com.evacipated.cardcrawl.modthespire.lib.SpireInstrumentPatch;
-import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpirePatch2;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import duospire.patches.gen.EnumPlace;
 import javassist.CannotCompileException;
@@ -9,37 +11,50 @@ import javassist.expr.ExprEditor;
 import javassist.expr.FieldAccess;
 
 public class UseOriginalColorForRendering {
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "initializeDescription"
     )
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "initializeDescriptionCN"
     )
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "createCardImage"
     )
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "renderAttackBg"
     )
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "renderSkillBg"
     )
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "renderPowerBg"
     )
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "renderEnergy"
     )
-    @SpirePatch(
+    @SpirePatch2(
             clz = AbstractCard.class,
             method = "updateCost"
+    )
+    @SpirePatch2(
+            clz = BaseMod.class,
+            method = "getCardSmallEnergy",
+            paramtypez = { AbstractCard.class }
+    )
+    @SpirePatch2(
+            clz = BackgroundFix.EnergyOrbTexture.class,
+            method = "getEnergyOrb"
+    )
+    @SpirePatch2(
+            clz = BackgroundFix.BackgroundTexture.class,
+            method = "Prefix"
     )
     public static class UseOriginal {
         @SpireInstrumentPatch

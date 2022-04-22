@@ -1,27 +1,38 @@
 package duospire.patches.gen;
 
 import basemod.BaseMod;
+import basemod.abstracts.CustomCard;
 import com.megacrit.cardcrawl.actions.AbstractGameAction;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import duospire.DuoSpire;
+import duospire.util.BytecodeTranslator;
 import duospire.util.NotDeprecatedFilter;
 import javassist.*;
-import javassist.bytecode.Descriptor;
+import javassist.bytecode.*;
+import javassist.bytecode.MethodInfo;
 import javassist.expr.*;
 import org.clapper.util.classutil.*;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 public class MultiplayerGeneration {
     private static final String PACKAGE_PREFIX = "duospire.";
     private static final String NAME_PREFIX = "DuoSpire";
 
-    private static final HashMap<String, CtClass> classReplacements = new HashMap<>();
+    private static final Set<String> noReplace = new HashSet<>();
+    static {
+        noReplace.add(AbstractCard.class.getName());
+        //noReplace.add(CustomCard.class.getName());
+        noReplace.add(AbstractGameAction.class.getName());
+        noReplace.add(Object.class.getName()); //hopefully nothing gets this far.
+    }
+    private static final Map<String, CtClass> classReplacements = new HashMap<>();
+    private static final Map<CtClass, String> superclasses = new HashMap<>();
     private static final ClassMap classMap = new ClassMap();
+
+    private static final Map<String, List<CtClass>> dependent = new HashMap<>();
 
     private static final List<CtClass> generated = new ArrayList<>();
     private static final List<CtClass> generatedCards = new ArrayList<>(); //Cards *only* go in this list as they need specific modifications.
@@ -31,6 +42,9 @@ public class MultiplayerGeneration {
     //private static CtClass ctAbstractCard = null;
 
     private static void registerReplacement(String original, CtClass replacement) {
+        if (original.equals(replacement.getName())) {
+            System.out.println("\t- UNCHANGED NAME?");
+        }
         classReplacements.put(original, replacement);
         classMap.put(original, replacement.getName());
     }
@@ -57,118 +71,136 @@ public class MultiplayerGeneration {
         ArrayList<ClassInfo> actionClasses = new ArrayList<>();
         finder.findClasses(actionClasses, actionFilter);
 
-        generateActions(pool, actionClasses);
+        generateClasses(pool, actionClasses, generated);
 
         ArrayList<ClassInfo> cardClasses = new ArrayList<>();
         finder.findClasses(cardClasses, cardFilter);
 
-        generateCards(pool, cardClasses);
+        generateClasses(pool, cardClasses, generatedCards);
+
+        if (!dependent.isEmpty()) {
+            System.out.println("\t- Superclasses for " + dependent.size() + " classes were not generated.");
+        }
+
+        ///TODO: If classes extend another class, mark them as incomplete.
+        //I'll have to generate a new class extending the altered base class first, then transfer everything to that new class to make it a copy of the original.
+        //Mark them as "dependent" on their base class.
+        //Then update them as their dependencies are dealt with.
+
+        //Specifically: For each class, check its base class. If that base class requires processing, put it in a hashmap of base class -> list of classes
+        //Whenever a class is processed, check for any dependencies that are now resolved and update those next.
 
         replaceClasses(pool);
 
         registerCards(pool);
+
     }
 
-    private static void generateActions(ClassPool pool, List<ClassInfo> actionClasses) throws NotFoundException {
+    private static boolean handled(CtClass clz) {
+        return classReplacements.containsKey(clz.getName()) || noReplace.contains(clz.getName());
+    }
+
+    private static void generateClasses(ClassPool pool, List<ClassInfo> baseClasses, List<CtClass> generated) throws NotFoundException {
         System.out.println("\t- Generating action copies.");
 
-        Collection<String> references;
-
-        outer:
-        for (ClassInfo classInfo : actionClasses)
+        for (ClassInfo classInfo : baseClasses)
         {
-            CtClass actionClass = pool.get(classInfo.getClassName());
+            CtClass clz = pool.get(classInfo.getClassName());
 
-            try
-            {
-                references = actionClass.getRefClasses();
-                for (String s : references) {
-                    CtClass reference = pool.getOrNull(s);
-                    if (reference == null) {
-                        System.out.println("\t\t- Class " + actionClass.getSimpleName() + " refers to an unloaded class, " + s + ", and will be skipped.");
-                        continue outer;
-                    }
+            generateClass(pool, clz, generated);
+        }
+    }
+
+    private static void generateClass(ClassPool pool, CtClass clz, List<CtClass> generated) {
+        try
+        {
+            Collection<?> references = clz.getRefClasses();
+            for (Object o : references) {
+                CtClass reference = pool.getOrNull(o.toString());
+                if (reference == null) {
+                    System.out.println("\t\t- Class " + clz.getSimpleName() + " refers to an unloaded class, " + o + ", and will be skipped.");
+                    return;
                 }
+            }
 
-                String origName = actionClass.getName();
-                String newName = actionClass.getPackageName();
+            CtClass superclass = clz.getSuperclass();
+
+            String origName = clz.getName();
+
+            if (superclass != null) {
+                if (!handled(superclass)) {
+                    dependent.compute(superclass.getName(), (k, v)-> {
+                        if (v == null)
+                            v = new ArrayList<>();
+                        v.add(clz);
+                        return v;
+                    });
+                    return;
+                }
+                else if (classReplacements.containsKey(superclass.getName())) {
+                    String newName = clz.getPackageName();
+                    if (newName == null)
+                        newName = PACKAGE_PREFIX;
+                    else
+                        newName = PACKAGE_PREFIX + newName + ".";
+                    newName += NAME_PREFIX + clz.getSimpleName();
+
+                    clz.setName(newName);
+                    clz.setSuperclass(classReplacements.get(superclass.getName()));
+                    superclasses.put(clz, superclass.getName());
+                }
+                else {
+                    //Non-replaced superclass
+                    String newName = clz.getPackageName();
+                    if (newName == null)
+                        newName = PACKAGE_PREFIX;
+                    else
+                        newName = PACKAGE_PREFIX + newName + ".";
+                    newName += NAME_PREFIX + clz.getSimpleName();
+
+                    clz.setName(newName);
+                }
+            }
+            else {
+                //No superclass...?
+                String newName = clz.getPackageName();
                 if (newName == null)
                     newName = PACKAGE_PREFIX;
                 else
                     newName = PACKAGE_PREFIX + newName + ".";
-                newName += NAME_PREFIX + actionClass.getSimpleName();
+                newName += NAME_PREFIX + clz.getSimpleName();
 
-                actionClass.setName(newName);
-
-                try {
-                    if (isModified == null) {
-                        isModified = actionClass.getClass().getDeclaredField("wasChanged");
-                        isModified.setAccessible(true);
-                    }
-                    isModified.set(actionClass, true);
-                    generated.add(actionClass);
-                    registerReplacement(origName, actionClass);
-                    //I also might be creating modified constructors, so I'll need to add the modified parameter info as well.
-                }
-                catch (NoSuchFieldException | IllegalAccessException e) {
-                    System.out.println("\t\t- Failed to mark new action as modified: " + actionClass.getSimpleName());
-                } //This ensures it will be compiled by ModTheSpire.
-            } catch(Exception e) {
-                System.out.println("\t\t- Error occurred while generating copy of class: " + actionClass.getSimpleName() + "\n");
-                e.printStackTrace();
+                clz.setName(newName);
             }
+
+
+            try {
+                if (isModified == null) {
+                    isModified = clz.getClass().getDeclaredField("wasChanged");
+                    isModified.setAccessible(true);
+                }
+                isModified.set(clz, true);
+
+                generated.add(clz);
+                registerReplacement(origName, clz);
+                //I also might be creating modified constructors, so I'll need to add the modified parameter info as well.
+
+                List<CtClass> dependencies = dependent.remove(origName);
+                if (dependencies != null) {
+                    for (CtClass dependency : dependencies) {
+                        generateClass(pool, dependency, generated);
+                    }
+                }
+            }
+            catch (NoSuchFieldException | IllegalAccessException e) {
+                System.out.println("\t\t- Failed to mark new class as modified: " + clz.getSimpleName());
+            } //This ensures it will be compiled by ModTheSpire.
+        } catch(Exception e) {
+            System.out.println("\t\t- Error occurred while generating copy of class: " + clz.getSimpleName() + "\n");
+            e.printStackTrace();
         }
     }
 
-    private static void generateCards(ClassPool pool, List<ClassInfo> cardClasses) throws NotFoundException {
-        System.out.println("\t- Generating card copies.");
-
-        Collection<String> references;
-
-        outer:
-        for (ClassInfo classInfo : cardClasses)
-        {
-            CtClass cardClass = pool.get(classInfo.getClassName());
-
-            try
-            {
-                references = cardClass.getRefClasses();
-                for (String s : references) {
-                    CtClass reference = pool.getOrNull(s);
-                    if (reference == null) {
-                        System.out.println("\t\t- Class " + cardClass.getSimpleName() + " refers to an unloaded class, " + s + ", and will be skipped.");
-                        continue outer;
-                    }
-                }
-
-                String origName = cardClass.getName();
-                String newName = cardClass.getPackageName();
-                if (newName == null)
-                    newName = PACKAGE_PREFIX;
-                else
-                    newName = PACKAGE_PREFIX + newName + ".";
-                newName += NAME_PREFIX + cardClass.getSimpleName();
-
-                cardClass.setName(newName);
-
-                try {
-                    if (isModified == null) {
-                        isModified = cardClass.getClass().getDeclaredField("wasChanged");
-                        isModified.setAccessible(true);
-                    }
-                    isModified.set(cardClass, true);
-                    generatedCards.add(cardClass);
-                    registerReplacement(origName, cardClass);
-                }
-                catch (NoSuchFieldException | IllegalAccessException e) {
-                    System.out.println("\t\t- Failed to mark new card as modified: " + cardClass.getSimpleName());
-                } //This ensures it will be compiled by ModTheSpire.
-            } catch(Exception e) {
-                System.out.println("\t\t- Error occurred while generating copy of class: " + cardClass.getSimpleName() + "\n");
-                e.printStackTrace();
-            }
-        }
-    }
 
     private static void replaceClasses(ClassPool pool) {
         System.out.println("\t- Replacing references.");
@@ -272,14 +304,8 @@ public class MultiplayerGeneration {
 
                         if (altParams != null) {
                             clz.removeMethod(mth);
-                            //Test:
                             CtMethod replacement = new CtMethod(mth, clz, classMap);
                             clz.addMethod(replacement);
-                        /*CtMethod replacement = new CtMethod(altParams, clz);
-                        replacement.setModifiers(con.getModifiers());
-                        replacement.setExceptionTypes(con.getExceptionTypes());
-                        replacement.setBody(con, classMap);
-                        clz.addConstructor(replacement);*/
                         }
                     }
                 }
@@ -301,7 +327,7 @@ public class MultiplayerGeneration {
 
                 methods = clz.getDeclaredMethods();
                 adjuster.modifyMethods(clz, methods);
-            } catch (CannotCompileException e) {
+            } catch (CannotCompileException | BadBytecode | NotFoundException e) {
                 System.out.println("\t\t- Error occurred while patching class: " + clz.getSimpleName() + "\n");
                 e.printStackTrace();
             }
@@ -309,14 +335,16 @@ public class MultiplayerGeneration {
     }
 
     private static class CardAdjuster extends ClassReplacer {
-        public CardAdjuster(HashMap<String, CtClass> classReplacements) {
+        public CardAdjuster(Map<String, CtClass> classReplacements) {
             super(classReplacements);
         }
 
         boolean callsSuper = false;
         @Override
         public void modifyConstructors(CtClass clz, CtConstructor[] constructors) throws CannotCompileException {
+            currentClass = clz;
             for (CtConstructor constructor : constructors) {
+                currentMember = constructor;
                 callsSuper = false;
                 constructor.instrument(this);
                 if (callsSuper) {
@@ -339,21 +367,42 @@ public class MultiplayerGeneration {
     }
 
     private static class ClassReplacer extends ExprEditor {
-        final HashMap<String, CtClass> classReplacements;
+        final Map<String, CtClass> classReplacements;
+        CtClass currentClass = null;
+        CtMember currentMember = null;
+        Set<CtMember> bytecodeLater = new HashSet<>();
 
-        public ClassReplacer(HashMap<String, CtClass> classReplacements) {
+        public ClassReplacer(Map<String, CtClass> classReplacements) {
             this.classReplacements = classReplacements;
         }
 
-        public void modifyConstructors(CtClass clz, CtConstructor[] constructors) throws CannotCompileException {
+        public void modifyConstructors(CtClass clz, CtConstructor[] constructors) throws CannotCompileException, NotFoundException, BadBytecode {
+            currentClass = clz;
+            bytecodeLater.clear();
             for (CtConstructor constructor : constructors) {
+                currentMember = constructor;
                 constructor.instrument(this);
+            }
+
+            for (CtMember member : bytecodeLater) {
+                if (member instanceof CtConstructor) {
+                    fixBody(clz, (CtConstructor) member);
+                }
             }
         }
 
-        public void modifyMethods(CtClass clz, CtMethod[] methods) throws CannotCompileException {
+        public void modifyMethods(CtClass clz, CtMethod[] methods) throws CannotCompileException, BadBytecode, NotFoundException {
+            currentClass = clz;
+            bytecodeLater.clear();
             for (CtMethod method : methods) {
+                currentMember = method;
                 method.instrument(this);
+            }
+
+            for (CtMember member : bytecodeLater) {
+                if (member instanceof CtMethod) {
+                    fixBody(clz, (CtMethod) member);
+                }
             }
         }
 
@@ -395,12 +444,42 @@ public class MultiplayerGeneration {
 
         @Override
         public void edit(MethodCall m) throws CannotCompileException {
-            super.edit(m);
+            CtClass replacement = classReplacements.get(m.getClassName());
+            if (replacement != null) {
+                CtMethod method;
+                try {
+                    method = m.getMethod();
+                } catch (NotFoundException e) {
+                    e.printStackTrace();
+                    return;
+                }
+
+                if (Modifier.isStatic(method.getModifiers())) {
+                    System.out.println("\t- Unmodified static method call: " + method.getLongName());
+                    //m.replace("$_ = " + replacement.getName() + "." + method.getName() + "($$);");
+                }
+                else if (m.isSuper()) {
+                    System.out.println("\t- Super call to incorrect class.");
+                    /*if (currentClass != null) {
+                        String origSuper = superclasses.get(currentClass);
+                        m.replace("$_ = " + replacement.getName() + ".this." + method.getName() + "($$);");
+                    }*/
+                    bytecodeLater.add(currentMember);
+                }
+                else {
+                    //System.out.println("\t- Unhandled method call to incorrect class.");
+                    m.replace("$_ = $proceed($$);");
+                }
+            }
         }
 
         @Override
         public void edit(FieldAccess f) throws CannotCompileException {
-            super.edit(f);
+            CtClass replacement = classReplacements.get(f.getClassName());
+            if (replacement != null) {
+                //System.out.println("\t- Unhandled field access to incorrect class.");
+                f.replace("$_ = $proceed($$);");
+            }
         }
 
         @Override
@@ -431,6 +510,21 @@ public class MultiplayerGeneration {
             if (replacement != null) {
                 c.replace("$_ = (" + replacement.getName() + ") $1;");
             }
+        }
+
+        protected void fixBody(CtClass clz, CtMethod method) throws BadBytecode, NotFoundException {
+            //MethodInfo info = method.getMethodInfo();
+            System.out.println(clz.getName() + '.' + method.getName());
+            System.out.println(new BytecodeTranslator(method).translate());
+            //Determining the called method/class requires the const pool
+            //methodInfo.getConstPool();
+        }
+        protected void fixBody(CtClass clz, CtConstructor constructor) throws BadBytecode, NotFoundException {
+            //MethodInfo info = method.getMethodInfo();
+            System.out.println(clz.getName() + '.' + constructor.getName());
+            System.out.println(new BytecodeTranslator(constructor).translate());
+            //Determining the called method/class requires the const pool
+            //methodInfo.getConstPool();
         }
     }
 
