@@ -135,30 +135,30 @@ public class BytecodeTranslator {
             case LDC_W:
             case LDC2_W:        push(cp.getLdcValue(uVal(index + 1))); break;
             case ILOAD:
-            case ALOAD:         pushSuf(var(bVal(index + 1)), " [var ", bVal(index + 1), ']'); break;
-            case LLOAD:         pushSuf(var(bVal(index + 1)), "_L [var ", bVal(index + 1), ']'); break;
-            case FLOAD:         pushSuf(var(bVal(index + 1)), "_F [var ", bVal(index + 1), ']'); break;
-            case DLOAD:         pushSuf(var(bVal(index + 1)), "_D [var ", bVal(index + 1), ']'); break;
+            case ALOAD:         pushSuf(var(bVal(index + 1)), " [var", bVal(index + 1), ']'); break;
+            case LLOAD:         pushSuf(var(bVal(index + 1)), "_L [var", bVal(index + 1), ']'); break;
+            case FLOAD:         pushSuf(var(bVal(index + 1)), "_F [var", bVal(index + 1), ']'); break;
+            case DLOAD:         pushSuf(var(bVal(index + 1)), "_D [var", bVal(index + 1), ']'); break;
             case ILOAD_0:
             case ILOAD_1:
             case ILOAD_2:
-            case ILOAD_3:       pushSuf(var(op - ILOAD_0), " [var ", op - ILOAD_0, ']'); break;
+            case ILOAD_3:       pushSuf(var(op - ILOAD_0), " [var", op - ILOAD_0, ']'); break;
             case LLOAD_0:
             case LLOAD_1:
             case LLOAD_2:
-            case LLOAD_3:       pushSuf(var(op - LLOAD_0), "_L [var ", op - LLOAD_0, ']'); break;
+            case LLOAD_3:       pushSuf(var(op - LLOAD_0), "_L [var", op - LLOAD_0, ']'); break;
             case FLOAD_0:
             case FLOAD_1:
             case FLOAD_2:
-            case FLOAD_3:       pushSuf(var(op - FLOAD_0), "_F [var ", op - FLOAD_0, ']'); break;
+            case FLOAD_3:       pushSuf(var(op - FLOAD_0), "_F [var", op - FLOAD_0, ']'); break;
             case DLOAD_0:
             case DLOAD_1:
             case DLOAD_2:
-            case DLOAD_3:       pushSuf(var(op - DLOAD_0), "_D [var ", op - DLOAD_0, ']'); break;
+            case DLOAD_3:       pushSuf(var(op - DLOAD_0), "_D [var", op - DLOAD_0, ']'); break;
             case ALOAD_0:
             case ALOAD_1:
             case ALOAD_2:
-            case ALOAD_3:       pushSuf(var(op - ALOAD_0), " [var ", op - ALOAD_0, ']'); break;
+            case ALOAD_3:       pushSuf(var(op - ALOAD_0), " [var", op - ALOAD_0, ']'); break;
             case IALOAD:        push(readArr(int.class)); break;
             case LALOAD:        push(readArr(long.class)); break;
             case FALOAD:        push(readArr(float.class)); break;
@@ -641,7 +641,6 @@ public class BytecodeTranslator {
                         sb.append("{NO ARRAY SIZE} ").append(a);
                         push(new ArrayRepresentation("arr" + arrCount++, arrClassInfo, ()->null, 1));
                     }
-                    sb.append(" ").append(arrClassInfo);
                 }
                 else {
                     sb.append("{NO CLASS FOUND AT INDEX ").append(uVal(index + 1)).append('}');
@@ -690,7 +689,6 @@ public class BytecodeTranslator {
                         dimensions[i] = stack.pop();
                     popStr(dimensions);
                     push(new ArrayRepresentation("arr" + arrCount++, multiArrClassInfo, ()->null, dimensions));
-                    sb.append(" ").append(multiArrClassInfo);
                 }
                 else {
                     sb.append("{NO CLASS FOUND AT INDEX ").append(uVal(index + 1)).append('}');
@@ -821,18 +819,18 @@ public class BytecodeTranslator {
     private void store(int index) {
         Object o = stack.pop();
         sb.append(o).append(" => ");
-        sb.append("var ").append(index);
+        sb.append("var").append(index);
         vars.put(index, o);
     }
     private void iinc(int index, int inc) {
         Object val = var(index);
         if (val instanceof Integer) {
-            sb.append("var ").append(index).append(" = ").append(val).append(" + ").append(inc);
+            sb.append("var").append(index).append(" = ").append(val).append(" + ").append(inc);
             vars.put(index, (Integer) val + inc);
         }
         else {
             String result = val.toString() + " + " + inc;
-            sb.append("var ").append(index).append(" = ").append(result);
+            sb.append("var").append(index).append(" = ").append(result);
             vars.put(index, result);
         }
     }
@@ -1173,7 +1171,7 @@ public class BytecodeTranslator {
 
         @Override
         public String toString() {
-            return identity + "_" + dataType + "_" + dimensions.length;
+            return identity + "_" + dataType;
         }
     }
 
