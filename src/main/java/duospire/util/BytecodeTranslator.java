@@ -134,31 +134,31 @@ public class BytecodeTranslator {
             case LDC:           push(cp.getLdcValue(bVal(index + 1))); break;
             case LDC_W:
             case LDC2_W:        push(cp.getLdcValue(uVal(index + 1))); break;
-            case ILOAD:         push(var(bVal(index + 1))); break;
-            case LLOAD:         pushSuf(var(bVal(index + 1)), "_L"); break;
-            case FLOAD:         pushSuf(var(bVal(index + 1)), "_F"); break;
-            case DLOAD:         pushSuf(var(bVal(index + 1)), "_D"); break;
-            case ALOAD:         push(var(bVal(index + 1))); break;
+            case ILOAD:
+            case ALOAD:         pushSuf(var(bVal(index + 1)), " [var ", bVal(index + 1), ']'); break;
+            case LLOAD:         pushSuf(var(bVal(index + 1)), "_L [var ", bVal(index + 1), ']'); break;
+            case FLOAD:         pushSuf(var(bVal(index + 1)), "_F [var ", bVal(index + 1), ']'); break;
+            case DLOAD:         pushSuf(var(bVal(index + 1)), "_D [var ", bVal(index + 1), ']'); break;
             case ILOAD_0:
             case ILOAD_1:
             case ILOAD_2:
-            case ILOAD_3:       push(var(op - ILOAD_0)); break;
+            case ILOAD_3:       pushSuf(var(op - ILOAD_0), " [var ", op - ILOAD_0, ']'); break;
             case LLOAD_0:
             case LLOAD_1:
             case LLOAD_2:
-            case LLOAD_3:       pushSuf(var(op - LLOAD_0), "_L"); break;
+            case LLOAD_3:       pushSuf(var(op - LLOAD_0), "_L [var ", op - LLOAD_0, ']'); break;
             case FLOAD_0:
             case FLOAD_1:
             case FLOAD_2:
-            case FLOAD_3:       pushSuf(var(op - FLOAD_0), "_F"); break;
+            case FLOAD_3:       pushSuf(var(op - FLOAD_0), "_F [var ", op - FLOAD_0, ']'); break;
             case DLOAD_0:
             case DLOAD_1:
             case DLOAD_2:
-            case DLOAD_3:       pushSuf(var(op - DLOAD_0), "_D"); break;
+            case DLOAD_3:       pushSuf(var(op - DLOAD_0), "_D [var ", op - DLOAD_0, ']'); break;
             case ALOAD_0:
             case ALOAD_1:
             case ALOAD_2:
-            case ALOAD_3:       push(var(op - ALOAD_0)); break;
+            case ALOAD_3:       pushSuf(var(op - ALOAD_0), " [var ", op - ALOAD_0, ']'); break;
             case IALOAD:        push(readArr(int.class)); break;
             case LALOAD:        push(readArr(long.class)); break;
             case FALOAD:        push(readArr(float.class)); break;
@@ -236,83 +236,83 @@ public class BytecodeTranslator {
                 break;
             case IADD: //-----------------Addition-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, Integer::sum, (x,y)->x+ "+" + y);
+                arith(a, b, Number::intValue, Integer::sum, (x,y)->x+ " + " + y);
                 break;
             case LADD:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, Long::sum, (x,y)->x + "+" + y, 'L');
+                arith(a, b, Number::longValue, Long::sum, (x,y)->x + " + " + y, 'L');
                 break;
             case FADD:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::floatValue, Float::sum, (x,y)->x + "+" + y, 'F');
+                arith(a, b, Number::floatValue, Float::sum, (x,y)->x + " + " + y, 'F');
                 break;
             case DADD:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::doubleValue, Double::sum, (x,y)->x + "+" + y, 'D');
+                arith(a, b, Number::doubleValue, Double::sum, (x,y)->x + " + " + y, 'D');
                 break;
             case ISUB: //-----------------Subtraction-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, (x, y)->x-y, (x,y)->x + "-" + y);
+                arith(a, b, Number::intValue, (x, y)->x-y, (x,y)->x + " - " + y);
                 break;
             case LSUB:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, (x, y)->x-y, (x,y)->x + "-" + y, 'L');
+                arith(a, b, Number::longValue, (x, y)->x-y, (x,y)->x + " - " + y, 'L');
                 break;
             case FSUB:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::floatValue, (x, y)->x-y, (x,y)->x + "-" + y, 'F');
+                arith(a, b, Number::floatValue, (x, y)->x-y, (x,y)->x + " - " + y, 'F');
                 break;
             case DSUB:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::doubleValue, (x, y)->x-y, (x,y)->x + "-" + y, 'D');
+                arith(a, b, Number::doubleValue, (x, y)->x-y, (x,y)->x + " - " + y, 'D');
                 break;
             case IMUL: //-----------------Multiplication-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, (x, y)->x*y, (x,y)->x + "*" + y);
+                arith(a, b, Number::intValue, (x, y)->x*y, (x,y)->x + " * " + y);
                 break;
             case LMUL:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, (x, y)->x*y, (x,y)->x + "*" + y, 'L');
+                arith(a, b, Number::longValue, (x, y)->x*y, (x,y)->x + " * " + y, 'L');
                 break;
             case FMUL:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::floatValue, (x, y)->x*y, (x,y)->x + "*" + y, 'F');
+                arith(a, b, Number::floatValue, (x, y)->x*y, (x,y)->x + " * " + y, 'F');
                 break;
             case DMUL:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::doubleValue, (x, y)->x*y, (x,y)->x + "*" + y, 'D');
+                arith(a, b, Number::doubleValue, (x, y)->x*y, (x,y)->x + " * " + y, 'D');
                 break;
             case IDIV: //-----------------Division-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, (x, y)->x/y, (x,y)->x + "/" + y);
+                arith(a, b, Number::intValue, (x, y)->x/y, (x,y)->x + " / " + y);
                 break;
             case LDIV:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, (x, y)->x/y, (x,y)->x + "/" + y, 'L');
+                arith(a, b, Number::longValue, (x, y)->x/y, (x,y)->x + " / " + y, 'L');
                 break;
             case FDIV:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::floatValue, (x, y)->x/y, (x,y)->x + "/" + y, 'F');
+                arith(a, b, Number::floatValue, (x, y)->x/y, (x,y)->x + " / " + y, 'F');
                 break;
             case DDIV:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::doubleValue, (x, y)->x/y, (x,y)->x + "/" + y, 'D');
+                arith(a, b, Number::doubleValue, (x, y)->x/y, (x,y)->x + " / " + y, 'D');
                 break;
             case IREM: //-----------------Remainder-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, (x, y)->x%y, (x,y)->x + "%" + y);
+                arith(a, b, Number::intValue, (x, y)->x%y, (x,y)->x + " % " + y);
                 break;
             case LREM:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, (x, y)->x%y, (x,y)->x + "%" + y, 'L');
+                arith(a, b, Number::longValue, (x, y)->x%y, (x,y)->x + " % " + y, 'L');
                 break;
             case FREM:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::floatValue, (x, y)->x%y, (x,y)->x + "%" + y, 'F');
+                arith(a, b, Number::floatValue, (x, y)->x%y, (x,y)->x + " % " + y, 'F');
                 break;
             case DREM:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::doubleValue, (x, y)->x%y, (x,y)->x + "%" + y, 'D');
+                arith(a, b, Number::doubleValue, (x, y)->x%y, (x,y)->x + " % " + y, 'D');
                 break;
             case INEG: //-----------------Negation-----------------
                 popStr(a = stack.pop());
@@ -332,51 +332,51 @@ public class BytecodeTranslator {
                 break;
             case ISHL: //-----------------Arithmetic LShift-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                shift(a, b, Number::intValue, (x, y)->x<<y, (x,y)->x + "<<" + y);
+                shift(a, b, Number::intValue, (x, y)->x<<y, (x,y)->x + " << " + y);
                 break;
             case LSHL:
                 popStr(a = stack.pop(), b = stack.pop());
-                shift(a, b, Number::longValue, (x, y)->x<<y, (x,y)->x + "<<" + y, 'L');
+                shift(a, b, Number::longValue, (x, y)->x<<y, (x,y)->x + " << " + y, 'L');
                 break;
             case ISHR: //-----------------Arithmetic (Signed) RShift-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                shift(a, b, Number::intValue, (x, y)->x>>y, (x,y)->x + ">>" + y);
+                shift(a, b, Number::intValue, (x, y)->x>>y, (x,y)->x + " >> " + y);
                 break;
             case LSHR:
                 popStr(a = stack.pop(), b = stack.pop());
-                shift(a, b, Number::longValue, (x, y)->x>>y, (x,y)->x + ">>" + y, 'L');
+                shift(a, b, Number::longValue, (x, y)->x>>y, (x,y)->x + " >> " + y, 'L');
                 break;
             case IUSHR: //-----------------Logical (Unsigned) RShift-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                shift(a, b, Number::intValue, (x, y)->x>>>y, (x,y)->x + ">>>" + y);
+                shift(a, b, Number::intValue, (x, y)->x>>>y, (x,y)->x + " >>> " + y);
                 break;
             case LUSHR:
                 popStr(a = stack.pop(), b = stack.pop());
-                shift(a, b, Number::longValue, (x, y)->x>>>y, (x,y)->x + ">>>" + y, 'L');
+                shift(a, b, Number::longValue, (x, y)->x>>>y, (x,y)->x + " >>> " + y, 'L');
                 break;
             case IAND: //-----------------Bitwise &-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, (x, y)->x&y, (x,y)->x + "&" + y);
+                arith(a, b, Number::intValue, (x, y)->x&y, (x,y)->x + " & " + y);
                 break;
             case LAND:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, (x, y)->x&y, (x,y)->x + "&" + y, 'L');
+                arith(a, b, Number::longValue, (x, y)->x&y, (x,y)->x + " & " + y, 'L');
                 break;
             case IOR: //-----------------Bitwise |-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, (x, y)->x|y, (x,y)->x + "|" + y);
+                arith(a, b, Number::intValue, (x, y)->x|y, (x,y)->x + " | " + y);
                 break;
             case LOR:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, (x, y)->x|y, (x,y)->x + "|" + y, 'L');
+                arith(a, b, Number::longValue, (x, y)->x|y, (x,y)->x + " | " + y, 'L');
                 break;
             case IXOR: //-----------------Bitwise ^-----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::intValue, (x, y)->x^y, (x,y)->x + "^" + y);
+                arith(a, b, Number::intValue, (x, y)->x^y, (x,y)->x + " ^ " + y);
                 break;
             case LXOR:
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, (x, y)->x^y, (x,y)->x + "^" + y, 'L');
+                arith(a, b, Number::longValue, (x, y)->x^y, (x,y)->x + " ^ " + y, 'L');
                 break;
             case IINC:          iinc(bVal(index + 1), bVal(index + 2));
             case L2I: //-----------------Type Conversion-----------------
@@ -417,7 +417,7 @@ public class BytecodeTranslator {
                 break;
             case LCMP: //----------------Comparison----------------
                 popStr(a = stack.pop(), b = stack.pop());
-                arith(a, b, Number::longValue, Long::compare, (x,y)->"cmp(" + x + "," + y + ")", 'L');
+                arith(a, b, Number::longValue, Long::compare, (x,y)->"cmp(" + x + ", " + y + ")", 'L');
                 break;
             case FCMPL:
                 popStr(a = stack.pop(), b = stack.pop());
@@ -426,7 +426,7 @@ public class BytecodeTranslator {
                             if (x.isNaN() || y.isNaN())
                                 return -1;
                             return Float.compare(x, y);
-                        }, (x,y)->"cmp(" + x + "," + y + ")", 'F');
+                        }, (x,y)->"cmp(" + x + ", " + y + ")", 'F');
                 break;
             case FCMPG:
                 popStr(a = stack.pop(), b = stack.pop());
@@ -435,7 +435,7 @@ public class BytecodeTranslator {
                             if (x.isNaN() || y.isNaN())
                                 return 1;
                             return Float.compare(x, y);
-                        }, (x,y)->"cmp(" + x + "," + y + ")", 'F');
+                        }, (x,y)->"cmp(" + x + ", " + y + ")", 'F');
                 break;
             case DCMPL:
                 popStr(a = stack.pop(), b = stack.pop());
@@ -444,7 +444,7 @@ public class BytecodeTranslator {
                             if (x.isNaN() || y.isNaN())
                                 return -1;
                             return Double.compare(x, y);
-                        }, (x,y)->"cmp(" + x + "," + y + ")", 'D');
+                        }, (x,y)->"cmp(" + x + ", " + y + ")", 'D');
                 break;
             case DCMPG:
                 popStr(a = stack.pop(), b = stack.pop());
@@ -453,7 +453,7 @@ public class BytecodeTranslator {
                             if (x.isNaN() || y.isNaN())
                                 return 1;
                             return Double.compare(x, y);
-                        }, (x,y)->"cmp(" + x + "," + y + ")", 'D');
+                        }, (x,y)->"cmp(" + x + ", " + y + ")", 'D');
                 break;
             case IFEQ:
                 popFormatted("if (%s == 0) go to ", 1);
@@ -521,12 +521,12 @@ public class BytecodeTranslator {
                 sb.append("go to ").append(uVal(index + 1));
                 useIndeterminate();
                 break;
-            case JSR:
+            case JSR: //Might want to implement this at some point?
             case RET:
                 sb.append("UNSUPPORTED");
                 useIndeterminate();
                 break;
-            case TABLESWITCH:
+            case TABLESWITCH: //Could use more work.
             case LOOKUPSWITCH:
                 endPopStr(stack.pop());
                 useIndeterminate();
@@ -588,21 +588,24 @@ public class BytecodeTranslator {
                 else
                     sb.append(putField).append(" [").append(cp.getFieldrefClassName(putFieldIndex)).append(']');
                 break;
-            case INVOKEVIRTUAL:
-            case INVOKESPECIAL:
-            case INVOKESTATIC:
+            case INVOKEVIRTUAL: //Normally calling a method
+            case INVOKESPECIAL: //Usually a super call
+            case INVOKESTATIC: //A static method.
+            case INVOKEINTERFACE: //An interface method. Has two additional bytes of info, but they're not important for this.
                 int virtualMethIndex = uVal(index + 1);
                 String virtualMethName = cp.getMethodrefName(virtualMethIndex);
                 if (virtualMethName == null) {
                     sb.append("{METHOD NOT FOUND}");
                 }
                 else {
-                    sb.append(virtualMethName).append(" [").append(cp.getMethodrefClassName(virtualMethIndex)).append(']');
+                    sb.append(virtualMethName).append(" [").append(cp.getMethodrefClassName(virtualMethIndex)).append("] ");
+                    String virtualMethType = cp.getMethodrefType(virtualMethIndex);
+                    processDescriptor(virtualMethName, virtualMethType);
                 }
-                //TODO: Remove parameters/add return value to stack
                 break;
-            case INVOKEINTERFACE:
             case INVOKEDYNAMIC:
+                //Gets a symbolic reference to a CallSite resolved to a reference to a bound instance of CallSite for this specific instruction.
+                //Then method indicated by CallSite is invoked.
                 break;
             case NEW:
                 int type = uVal(index + 1);
@@ -617,20 +620,18 @@ public class BytecodeTranslator {
                 break;
             case NEWARRAY:
                 a = stack.pop();
-                int aType = bVal(index + 1);
                 if (a instanceof Integer) {
                     popStr(a);
-                    push(newArray(aType, (Integer) a));
+                    push(newArray(bVal(index + 1), (Integer) a));
                 }
                 else {
                     sb.append("{NO ARRAY SIZE} ").append(a);
-                    push(newArray(aType, 1));
+                    push(newArray(bVal(index + 1), 1));
                 }
                 break;
             case ANEWARRAY:
                 a = stack.pop();
-                int classIndex = uVal(index + 1);
-                String arrClassInfo = cp.getClassInfo(classIndex);
+                String arrClassInfo = cp.getClassInfo(uVal(index + 1));
                 if (arrClassInfo != null) {
                     if (a instanceof Integer) {
                         popStr(a);
@@ -643,11 +644,75 @@ public class BytecodeTranslator {
                     sb.append(" ").append(arrClassInfo);
                 }
                 else {
-                    sb.append("{NO CLASS FOUND AT INDEX ").append(classIndex).append('}');
+                    sb.append("{NO CLASS FOUND AT INDEX ").append(uVal(index + 1)).append('}');
                 }
                 break;
+            case ARRAYLENGTH:
+                popStr(a = stack.pop());
+                if (a == null)
+                    push(UNDF);
+                else
+                    push(a + ".length");
+                break;
+            case ATHROW:
+                endPopStr(a = stack.pop());
+                stack.clear();
+                stack.push(a);
+                sb.append(" [Empty Stack], ");
+                sb.append(a);
+                break;
+            case CHECKCAST:
+                String checkCast = cp.getClassInfo(uVal(index + 1));
+                if (checkCast == null) checkCast = UNDF;
+                popFormatted("%s instanceof " + checkCast + " ", a = stack.pop());
+                push(a);
+                break;
+            case INSTANCEOF:
+                String instanceOf = cp.getClassInfo(uVal(index + 1));
+                if (instanceOf == null) instanceOf = UNDF;
+                popStr(a = stack.pop());
+                push(a.toString() + " instanceof " + instanceOf);
+                break;
+            case MONITORENTER:
+                popFormatted("synchronized on %s ->", 1);
+                break;
+            case MONITOREXIT:
+                popFormatted("end synchronized on %s ->", 1);
+                break;
+            case WIDE:
+                break;
+            case MULTIANEWARRAY:
+                String multiArrClassInfo = cp.getClassInfo(uVal(index + 1));
+                if (multiArrClassInfo != null) {
+                    int numDimensions = bVal(index + 3);
+                    Object[] dimensions = new Object[numDimensions];
+                    for (int i = 0; i < numDimensions; ++i)
+                        dimensions[i] = stack.pop();
+                    popStr(dimensions);
+                    push(new ArrayRepresentation("arr" + arrCount++, multiArrClassInfo, ()->null, dimensions));
+                    sb.append(" ").append(multiArrClassInfo);
+                }
+                else {
+                    sb.append("{NO CLASS FOUND AT INDEX ").append(uVal(index + 1)).append('}');
+                }
+                break;
+            case IFNULL:
+                popFormatted("if (%s == null) go to ", 1);
+                sb.append(uVal(index + 1));
+                useIndeterminate();
+                break;
+            case IFNONNULL:
+                popFormatted("if (%s != null) go to ", 1);
+                sb.append(uVal(index + 1));
+                useIndeterminate();
+                break;
+            case GOTO_W:
+                break;
+            case JSR_W:
+                break;
             case NOP:
-            default:
+            default: //breakpoint, reserved, impdep1, impdep2
+                break;
         }
         sb.append('\n');
     }
@@ -657,6 +722,9 @@ public class BytecodeTranslator {
     }
     private int uVal(int index) {
         return ci.u16bitAt(index);
+    }
+    private int wVal(int index) {
+        return ci.s32bitAt(index);
     }
     private Object var(int index) {
         if (index < 0 || index > vars.size())
@@ -707,6 +775,15 @@ public class BytecodeTranslator {
             sb.append(o == null ? NULL : o);
         }
         sb.append(' ');
+    }
+    private void popAmt(int amt) {
+        if (amt <= 0)
+            return;
+        Object[] popped = new Object[amt];
+        for (int i = 0; i < amt; ++i) {
+            popped[i] = stack.pop();
+        }
+        popStr(popped);
     }
     private void popFormatted(String format, int amt) {
         Object[] popped = new Object[amt];
@@ -796,13 +873,18 @@ public class BytecodeTranslator {
                 }
 
                 sb.append(arr).append(", ").append(index).append(", ").append(val);
-                sb.append(" ->");
+                sb.append(" => ");
+                sb.append(arr).append('[').append(index).append("] = ").append(val);
                 if (!((ArrayRepresentation) arr).set(val, (Integer) index)) {
                     sb.append(" INDEX OUT OF BOUNDS");
                 }
             }
             else {
-                sb.append(val).append(", ").append(index).append(", ").append(UNDF).append(" -> ");
+                if (arr == null)
+                    arr = NULL;
+                sb.append(arr).append(", ").append(index).append(", ").append(val);
+                sb.append(" => ");
+                sb.append(arr).append('[').append(index).append("] = ").append(val);
             }
         }
         else {
@@ -909,21 +991,100 @@ public class BytecodeTranslator {
             push(result);
     }
 
+    private void processDescriptor(String name, String descriptor) {
+        if (descriptor == null || descriptor.length() < 3)
+            return;
+        if (descriptor.equals("()V")) {
+            sb.append("void");
+            return;
+        }
+        char c;
+        int i = 1;
+        int params = 0;
+        outer:
+        for (; i < descriptor.length(); ++i) { //First character is just opening parentheses
+            c = descriptor.charAt(i);
+            switch (c) {
+                case ')':
+                    ++i;
+                    break outer;
+                case 'L':
+                    ++i;
+                    while (i < descriptor.length()) {
+                        if (descriptor.charAt(i) == ';')
+                            break;
+                        ++i;
+                    }
+                case 'B':
+                case 'C':
+                case 'D':
+                case 'F':
+                case 'I':
+                case 'J':
+                case 'S':
+                case 'Z':
+                    ++params;
+                    break;
+                case '[':
+                    break;
+            }
+        }
+        popAmt(params);
+        if (i < descriptor.length() && descriptor.charAt(i) != 'V') {
+            StringBuilder arr = new StringBuilder();
+            for (; i < descriptor.length(); ++i) { //First character is just opening parentheses
+                c = descriptor.charAt(i);
+                switch (c) {
+                    case 'L':
+                        int start = Math.max(i, descriptor.lastIndexOf('/')) + 1;
+                        if (start >= descriptor.length() - 1) {
+                            push(UNDF);
+                            return;
+                        }
+                        push(descriptor.substring(start, descriptor.length() - 1) + arr);
+                        return;
+                    case 'B':
+                        push("byte" + arr); return;
+                    case 'C':
+                        push("char" + arr); return;
+                    case 'D':
+                        push("double" + arr); return;
+                    case 'F':
+                        push("float" + arr); return;
+                    case 'I':
+                        push("int" + arr); return;
+                    case 'J':
+                        push("long" + arr); return;
+                    case 'S':
+                        push("short" + arr); return;
+                    case 'Z':
+                        push("boolean" + arr); return;
+                    case '[':
+                        arr.append("[]");
+                        break;
+                }
+            }
+        }
+        else {
+            sb.append("->");
+        }
+    }
+
     private static class ArrayRepresentation {
         final String identity;
         final String dataType;
-        final int[] dimensions, dimensionMultipliers;
+        final int[] dimensions;
+        final int[] dimensionMultipliers;
         final Object[] arr;
+        final boolean determinate;
 
-        public <T> ArrayRepresentation(String identity, Class<T> clazz, Supplier<T> defaultVal, int... dimensions) {
-            this(identity, clazz.getName(), defaultVal, dimensions);
-        }
-        public <T> ArrayRepresentation(String identity, String typeName, Supplier<T> defaultVal, int... dimensions) {
+        public <T> ArrayRepresentation(String identity, Class<T> clazz, Supplier<T> defaultVal, int[] dimensions) {
             this.identity = identity;
-            this.dataType = typeName;
+            this.dataType = clazz.getName();
             this.dimensions = dimensions;
             this.dimensionMultipliers = new int[dimensions.length + 1]; //The last value will never be used.
             dimensionMultipliers[0] = 1;
+            determinate = true;
 
             int totalSize = 1;
             for (int i = 0; i < dimensions.length; ++i) {
@@ -934,10 +1095,51 @@ public class BytecodeTranslator {
             for (int i = 0; i < totalSize; ++i)
                 arr[i] = defaultVal.get();
         }
+        public <T> ArrayRepresentation(String identity, String typeName, Supplier<T> defaultVal, Object... dimensions) {
+            this.identity = identity;
+            this.dataType = typeName;
+            this.dimensions = new int[dimensions.length];
+            this.dimensionMultipliers = new int[dimensions.length + 1]; //The last value will never be used.
+            dimensionMultipliers[0] = 1;
+
+            boolean determinate = true;
+
+            int totalSize = 1;
+            for (int i = 0; i < dimensions.length; ++i) {
+                Object o = dimensions[i];
+                if (o instanceof Integer) {
+                    totalSize *= (int) o;
+                    this.dimensions[i] = (int) o;
+                    dimensionMultipliers[i + 1] = (int) o;
+                }
+                else {
+                    determinate = false;
+                    totalSize = 0;
+                    for (; i < dimensions.length; ++i)
+                        dimensionMultipliers[i + 1] = 1;
+                }
+            }
+            this.determinate = determinate;
+            if (determinate) {
+                arr = new Object[totalSize];
+                for (int i = 0; i < totalSize; ++i)
+                    arr[i] = defaultVal.get();
+            }
+            else {
+                arr = null;
+            }
+        }
 
         public Object get(int... indices) {
             if (indices.length != dimensions.length)
                 return "ARRAY INDICES MISMATCH";
+
+            if (!determinate) {
+                StringBuilder sb = new StringBuilder(identity);
+                for (int i = 0; i < indices.length; ++i)
+                    sb.append('[').append(indices[i]).append(']');
+                return sb.toString();
+            }
 
             Integer index = translateIndices(indices);
             if (index == null)
@@ -947,6 +1149,10 @@ public class BytecodeTranslator {
         }
 
         public boolean set(Object val, int... indices) {
+            if (!determinate) {
+                return true;
+            }
+
             Integer index = translateIndices(indices);
             if (index == null)
                 return false;

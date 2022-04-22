@@ -51,6 +51,8 @@ public class RawPatchTrigger {
         //Testing bytecode translator
         BytecodeTranslator translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("TestMethod"));
         System.out.println(translator.translate());
+        translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("LongTest"));
+        System.out.println(translator.translate());
     }
 
     public static void TestMethod() {
@@ -75,6 +77,9 @@ public class RawPatchTrigger {
         else {
             a = 999;
         }
+
+        long[][][] bigArray = new long[e][c][7];
+        bigArray = null;
     }
 
     public static void LongTest() {
