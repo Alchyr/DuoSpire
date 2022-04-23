@@ -1,6 +1,5 @@
 package duospire;
 
-import basemod.AutoAdd;
 import basemod.BaseMod;
 import basemod.interfaces.*;
 import duospire.util.GeneralUtils;
@@ -31,6 +30,8 @@ public class DuoSpire implements
         EditKeywordsSubscriber,
         EditCardsSubscriber,
         PostInitializeSubscriber {
+    public static final boolean FULL_DEBUG_LOGGING = true;
+
     public static ModInfo info;
     public static String modID;
     static { loadModInfo(); }
@@ -41,6 +42,13 @@ public class DuoSpire implements
     //to avoid conflicts between different mods using the same name for things.
     public static String makeID(String id) {
         return modID + ":" + id;
+    }
+    public static String oncePrefix(String id) {
+        if (id == null)
+            return null;
+        if (id.startsWith(modID))
+            return id;
+        return makeID(id);
     }
 
     //This will be called by ModTheSpire because of the @SpireInitializer annotation at the top of the class.

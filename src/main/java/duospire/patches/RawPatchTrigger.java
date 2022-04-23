@@ -49,37 +49,8 @@ public class RawPatchTrigger {
         System.out.println("Raw patches complete.");
 
         //Testing bytecode translator
-        BytecodeTranslator translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("TestMethod"));
+        BytecodeTranslator translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("LongTest"));
         System.out.println(translator.translate());
-        translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("LongTest"));
-        System.out.println(translator.translate());
-    }
-
-    public static void TestMethod() {
-        int a = -1; //iconst_m1
-        int b = 0; //iconst_0
-        int c = 4; //iconst_4
-        int d = 5; //iconst_5
-        int e = 64; //bipush
-        float f = 1; //dconst_1
-        double g = 100; //ldc2_w
-        int h = 0x7fffffff; //ldc
-
-        b = c + d;
-        f = e + f;
-
-        int[] arr = new int[] { 128, 256 };
-        a = arr[1];
-
-        if (a > 0) {
-            a = 0;
-        }
-        else {
-            a = 999;
-        }
-
-        long[][][] bigArray = new long[e][c][7];
-        bigArray = null;
     }
 
     public static void LongTest() {

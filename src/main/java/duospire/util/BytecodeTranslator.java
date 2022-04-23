@@ -1,9 +1,6 @@
 package duospire.util;
 
-import javassist.CtClass;
-import javassist.CtConstructor;
-import javassist.CtMethod;
-import javassist.NotFoundException;
+import javassist.*;
 import javassist.bytecode.*;
 
 import java.lang.reflect.Modifier;
@@ -39,6 +36,18 @@ public class BytecodeTranslator {
         return bytecode.toString();
     }
 
+    public static void translate(ClassPool pool, String className, String methodName) {
+        try {
+            CtClass clz = pool.get(className);
+            CtMethod method = clz.getDeclaredMethod(methodName);
+            System.out.println(new BytecodeTranslator(method).translate());
+        } catch (NotFoundException e) {
+            System.out.println("BytecodeTranslator: Method + " + className + "." + methodName + " not found.");
+        } catch (BadBytecode badBytecode) {
+            badBytecode.printStackTrace();
+        }
+    }
+
     private final MethodInfo mi;
     private final ConstPool cp;
 
@@ -47,14 +56,7 @@ public class BytecodeTranslator {
 
     private final StringBuilder sb;
 
-    private final IntedetermineDeque indeterminate = new IntedetermineDeque();
     private Deque<Object> stack = new IntedetermineDeque();
-    private void useIndeterminate() {
-        if (!stack.equals(indeterminate)) {
-            indeterminate.setSub(stack);
-            stack = indeterminate;
-        }
-    }
 
     private final Map<Integer, Object> vars = new HashMap<>();
 
@@ -106,6 +108,7 @@ public class BytecodeTranslator {
 
     private void opToString(CodeIterator ci) throws BadBytecode {
         Object a, b, c, d;
+        boolean staticMethod = false;
         int index = ci.next();
         int op = ci.byteAt(index);
         String hexOp = Integer.toHexString(op);
@@ -163,7 +166,7 @@ public class BytecodeTranslator {
             case LALOAD:        push(readArr(long.class)); break;
             case FALOAD:        push(readArr(float.class)); break;
             case DALOAD:        push(readArr(double.class)); break;
-            case AALOAD:        push(readArr(Object[].class)); break;
+            case AALOAD:        push(readArr(Object.class)); break;
             case BALOAD:        push(readArr(byte.class)); break;
             case CALOAD:        push(readArr(char.class)); break;
             case SALOAD:        push(readArr(short.class)); break;
@@ -458,78 +461,63 @@ public class BytecodeTranslator {
             case IFEQ:
                 popFormatted("if (%s == 0) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IFNE:
                 popFormatted("if (%s != 0) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IFLT:
                 popFormatted("if (%s < 0) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IFGE:
                 popFormatted("if (%s >= 0) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IFGT:
                 popFormatted("if (%s > 0) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IFLE:
                 popFormatted("if (%s <= 0) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IF_ICMPEQ:
             case IF_ACMPEQ:
                 popFormatted("if (%s == %s) go to ", 2);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IF_ICMPNE:
             case IF_ACMPNE:
                 popFormatted("if (%s != %s) go to ", 2);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IF_ICMPLT:
                 popFormatted("if (%s < %s) go to ", 2);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IF_ICMPGE:
                 popFormatted("if (%s >= %s) go to ", 2);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IF_ICMPGT:
                 popFormatted("if (%s > %s) go to ", 2);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IF_ICMPLE:
                 popFormatted("if (%s <= %s) go to ", 2);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case GOTO:
                 sb.append("go to ").append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case JSR: //Might want to implement this at some point?
             case RET:
                 sb.append("UNSUPPORTED");
-                useIndeterminate();
                 break;
             case TABLESWITCH: //Could use more work.
             case LOOKUPSWITCH:
                 endPopStr(stack.pop());
-                useIndeterminate();
                 break;
             case IRETURN:
             case LRETURN:
@@ -550,9 +538,8 @@ public class BytecodeTranslator {
                     stack.push(UNDF);
                 }
                 else {
-                    sb.append("Field ").append(getStaticField).append(' ');
+                    sb.append(cp.getFieldrefClassName(getStaticIndex)).append('.').append(getStaticField).append(' ');
                     push(getStaticField);
-                    sb.append(" [").append(cp.getFieldrefClassName(getStaticIndex)).append(']');
                 }
                 break;
             case PUTSTATIC:
@@ -588,9 +575,10 @@ public class BytecodeTranslator {
                 else
                     sb.append(putField).append(" [").append(cp.getFieldrefClassName(putFieldIndex)).append(']');
                 break;
+            case INVOKESTATIC: //A static method.
+                staticMethod = true;
             case INVOKEVIRTUAL: //Normally calling a method
             case INVOKESPECIAL: //Usually a super call
-            case INVOKESTATIC: //A static method.
             case INVOKEINTERFACE: //An interface method. Has two additional bytes of info, but they're not important for this.
                 int virtualMethIndex = uVal(index + 1);
                 String virtualMethName = cp.getMethodrefName(virtualMethIndex);
@@ -598,9 +586,7 @@ public class BytecodeTranslator {
                     sb.append("{METHOD NOT FOUND}");
                 }
                 else {
-                    sb.append(virtualMethName).append(" [").append(cp.getMethodrefClassName(virtualMethIndex)).append("] ");
-                    String virtualMethType = cp.getMethodrefType(virtualMethIndex);
-                    processDescriptor(virtualMethName, virtualMethType);
+                    processDescriptor(virtualMethName, cp.getMethodrefType(virtualMethIndex), staticMethod, cp.getMethodrefClassName(virtualMethIndex));
                 }
                 break;
             case INVOKEDYNAMIC:
@@ -697,12 +683,10 @@ public class BytecodeTranslator {
             case IFNULL:
                 popFormatted("if (%s == null) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case IFNONNULL:
                 popFormatted("if (%s != null) go to ", 1);
                 sb.append(uVal(index + 1));
-                useIndeterminate();
                 break;
             case GOTO_W:
                 break;
@@ -725,9 +709,9 @@ public class BytecodeTranslator {
         return ci.s32bitAt(index);
     }
     private Object var(int index) {
-        if (index < 0 || index > vars.size())
+        if (index < 0)
             return UNDF;
-        return vars.get(index);
+        return vars.getOrDefault(index, UNDF);
     }
 
     private void push(Object val) {
@@ -784,6 +768,8 @@ public class BytecodeTranslator {
         popStr(popped);
     }
     private void popFormatted(String format, int amt) {
+        if (amt <= 0)
+            return;
         Object[] popped = new Object[amt];
         for (int i = amt - 1; i >= 0; --i) {
             popped[i] = stack.pop();
@@ -989,16 +975,15 @@ public class BytecodeTranslator {
             push(result);
     }
 
-    private void processDescriptor(String name, String descriptor) {
-        if (descriptor == null || descriptor.length() < 3)
-            return;
-        if (descriptor.equals("()V")) {
-            sb.append("void");
+    private void processDescriptor(String name, String descriptor, boolean isStatic, String className) {
+        if (descriptor == null || descriptor.length() < 3) {
+            sb.append(name).append(" [").append(className).append("]");
             return;
         }
+
         char c;
         int i = 1;
-        int params = 0;
+        int params = isStatic ? 0 : 1;
         outer:
         for (; i < descriptor.length(); ++i) { //First character is just opening parentheses
             c = descriptor.charAt(i);
@@ -1027,9 +1012,30 @@ public class BytecodeTranslator {
                     break;
             }
         }
-        popAmt(params);
+
+        StringBuilder format = new StringBuilder(isStatic ? className : "%s");
+        format.append('.').append(name);
+        if (!isStatic) {
+            sb.append('[').append(className).append('.').append(name).append("] ");
+        }
+        int n = isStatic ? 0 : 1;
+        if (n < params)
+            format.append('(');
+        for (; n < params - 1; ++n)
+            format.append("%s, ");
+        if (n < params)
+            format.append("%s)");
+
+        if (params == 0) {
+            sb.append(format);
+        }
+        else {
+            popFormatted(format.toString(), params);
+        }
+        sb.append(' ');
+
         if (i < descriptor.length() && descriptor.charAt(i) != 'V') {
-            StringBuilder arr = new StringBuilder();
+            format.setLength(0);
             for (; i < descriptor.length(); ++i) { //First character is just opening parentheses
                 c = descriptor.charAt(i);
                 switch (c) {
@@ -1039,32 +1045,35 @@ public class BytecodeTranslator {
                             push(UNDF);
                             return;
                         }
-                        push(descriptor.substring(start, descriptor.length() - 1) + arr);
+                        push(descriptor.substring(start, descriptor.length() - 1) + format);
                         return;
                     case 'B':
-                        push("byte" + arr); return;
+                        push("byte" + format); return;
                     case 'C':
-                        push("char" + arr); return;
+                        push("char" + format); return;
                     case 'D':
-                        push("double" + arr); return;
+                        push("double" + format); return;
                     case 'F':
-                        push("float" + arr); return;
+                        push("float" + format); return;
                     case 'I':
-                        push("int" + arr); return;
+                        push("int" + format); return;
                     case 'J':
-                        push("long" + arr); return;
+                        push("long" + format); return;
                     case 'S':
-                        push("short" + arr); return;
+                        push("short" + format); return;
                     case 'Z':
-                        push("boolean" + arr); return;
+                        push("boolean" + format); return;
                     case '[':
-                        arr.append("[]");
+                        format.append("[]");
                         break;
                 }
             }
         }
+        else if (params == 0) {
+            sb.append("void"); //no params, no return (no change to stack)
+        }
         else {
-            sb.append("->");
+            sb.append("->"); //Removed params from stack
         }
     }
 
