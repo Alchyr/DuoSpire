@@ -125,7 +125,8 @@ public class CharacterColorEnumFields {
 
     private static final String COLOR_REGISTRATION_PRE =
             BaseMod.class.getName() + ".addColor(";
-    private static final String COLOR_REGISTRATION_POST = ", " + Color.class.getName() + ".WHITE.cpy(), " +
+    private static final String COLOR_REGISTRATION_MID = ", " + CharacterColorEnumFields.class.getName() + ".getCharColor(";
+    private static final String COLOR_REGISTRATION_POST = "), " +
                     "\"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\", \"\");\n";
     private static void generateColorRegistration(ClassPool pool, List<CtField> cardColorFields) throws NotFoundException, CannotCompileException {
         CtClass registrationPlace = pool.get(PostStandardInit.class.getName());
@@ -138,10 +139,36 @@ public class CharacterColorEnumFields {
                     .append(cardColor.getDeclaringClass().getName())
                     .append('.')
                     .append(cardColor.getName())
+                    .append(COLOR_REGISTRATION_MID)
+                    .append(cardColor.getDeclaringClass().getName())
+                    .append('.')
+                    .append(cardColor.getName())
                     .append(COLOR_REGISTRATION_POST);
         }
         body.append("}");
 
         registerColors.setBody(body.toString());
+    }
+
+    @SuppressWarnings("unused")
+    public static Color getCharColor(AbstractCard.CardColor cardColor) {
+        AbstractCard.CardColor orig = EnumPlace.getOrigColor(cardColor);
+        switch (orig) {
+            case RED:
+                return new Color(0.5F, 0.1F, 0.1F, 1.0F); //see ColorTabBar
+            case GREEN:
+                return new Color(0.25F, 0.55F, 0.0F, 1.0F);
+            case BLUE:
+                return new Color(0.01F, 0.34F, 0.52F, 1.0F);
+            case PURPLE:
+                return new Color(0.37F, 0.22F, 0.49F, 1.0F);
+            case COLORLESS:
+                return new Color(0.4F, 0.4F, 0.4F, 1.0F);
+            case CURSE:
+                return new Color(0.18F, 0.18F, 0.16F, 1.0F);
+            default:
+                Color c = BaseMod.getTrailVfxColor(orig);
+                return c == null ? Color.WHITE.cpy() : c.cpy();
+        }
     }
 }

@@ -1,4 +1,4 @@
-package duospire.util;
+package duospire.generation;
 
 import javassist.*;
 import javassist.bytecode.*;
@@ -459,57 +459,57 @@ public class BytecodeTranslator {
                         }, (x,y)->"cmp(" + x + ", " + y + ")", 'D');
                 break;
             case IFEQ:
-                popFormatted("if (%s == 0) go to ", 1);
+                popFormatted("if (%s == 0) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case IFNE:
-                popFormatted("if (%s != 0) go to ", 1);
+                popFormatted("if (%s != 0) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case IFLT:
-                popFormatted("if (%s < 0) go to ", 1);
+                popFormatted("if (%s < 0) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case IFGE:
-                popFormatted("if (%s >= 0) go to ", 1);
+                popFormatted("if (%s >= 0) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case IFGT:
-                popFormatted("if (%s > 0) go to ", 1);
+                popFormatted("if (%s > 0) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case IFLE:
-                popFormatted("if (%s <= 0) go to ", 1);
+                popFormatted("if (%s <= 0) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case IF_ICMPEQ:
             case IF_ACMPEQ:
-                popFormatted("if (%s == %s) go to ", 2);
+                popFormatted("if (%s == %s) go to offset ", 2);
                 sb.append(uVal(index + 1));
                 break;
             case IF_ICMPNE:
             case IF_ACMPNE:
-                popFormatted("if (%s != %s) go to ", 2);
+                popFormatted("if (%s != %s) go to offset ", 2);
                 sb.append(uVal(index + 1));
                 break;
             case IF_ICMPLT:
-                popFormatted("if (%s < %s) go to ", 2);
+                popFormatted("if (%s < %s) go to offset ", 2);
                 sb.append(uVal(index + 1));
                 break;
             case IF_ICMPGE:
-                popFormatted("if (%s >= %s) go to ", 2);
+                popFormatted("if (%s >= %s) go to offset ", 2);
                 sb.append(uVal(index + 1));
                 break;
             case IF_ICMPGT:
-                popFormatted("if (%s > %s) go to ", 2);
+                popFormatted("if (%s > %s) go to offset ", 2);
                 sb.append(uVal(index + 1));
                 break;
             case IF_ICMPLE:
-                popFormatted("if (%s <= %s) go to ", 2);
+                popFormatted("if (%s <= %s) go to offset ", 2);
                 sb.append(uVal(index + 1));
                 break;
             case GOTO:
-                sb.append("go to ").append(uVal(index + 1));
+                sb.append("go to offset ").append(uVal(index + 1));
                 break;
             case JSR: //Might want to implement this at some point?
             case RET:
@@ -681,11 +681,11 @@ public class BytecodeTranslator {
                 }
                 break;
             case IFNULL:
-                popFormatted("if (%s == null) go to ", 1);
+                popFormatted("if (%s == null) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case IFNONNULL:
-                popFormatted("if (%s != null) go to ", 1);
+                popFormatted("if (%s != null) go to offset ", 1);
                 sb.append(uVal(index + 1));
                 break;
             case GOTO_W:

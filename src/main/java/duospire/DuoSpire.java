@@ -2,6 +2,17 @@ package duospire;
 
 import basemod.BaseMod;
 import basemod.interfaces.*;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.megacrit.cardcrawl.core.CardCrawlGame;
+import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
+import com.megacrit.cardcrawl.helpers.*;
+import com.megacrit.cardcrawl.random.Random;
+import com.megacrit.cardcrawl.screens.charSelect.CharacterSelectScreen;
+import duospire.networking.gameplay.P2P;
+import duospire.patches.menu.CoopMenu;
+import duospire.ui.ChatBox;
+import duospire.ui.CoopMenuScreen;
+import duospire.ui.PingDisplay;
 import duospire.util.GeneralUtils;
 import duospire.util.KeywordInfo;
 import duospire.util.TextureLoader;
@@ -14,10 +25,12 @@ import com.evacipated.cardcrawl.modthespire.lib.SpireInitializer;
 import com.google.gson.Gson;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.localization.*;
+import duospire.networking.matchmaking.Matchmaking;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.scannotation.AnnotationDB;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,13 +42,21 @@ public class DuoSpire implements
         EditStringsSubscriber,
         EditKeywordsSubscriber,
         EditCardsSubscriber,
-        PostInitializeSubscriber {
+        PostInitializeSubscriber,
+        RenderSubscriber,
+        PostUpdateSubscriber {
     public static final boolean FULL_DEBUG_LOGGING = true;
 
     public static ModInfo info;
     public static String modID;
     static { loadModInfo(); }
     public static final Logger logger = LogManager.getLogger(modID); //Used to output to the console.
+    public static final Logger matchmakingLogger = LogManager.getLogger("DuoSpire Matchmaking");
+
+    public static Prefs coopPrefs;
+
+    public static final int MAX_ASCENSION = 20;
+
     private static final String resourcesFolder = "duospire";
 
     //This is used to prefix the IDs of various objects like cards and relics,
@@ -43,7 +64,7 @@ public class DuoSpire implements
     public static String makeID(String id) {
         return modID + ":" + id;
     }
-    public static String oncePrefix(String id) {
+    public static String oncePrefix(String id) { //Added to modified cards.
         if (id == null)
             return null;
         if (id.startsWith(modID))
@@ -51,7 +72,54 @@ public class DuoSpire implements
         return makeID(id);
     }
 
-    //This will be called by ModTheSpire because of the @SpireInitializer annotation at the top of the class.
+    public static final Charset CHARSET = StandardCharsets.UTF_8;
+
+    //Co-op stuff
+    public static ChatBox chat;
+    public static final PingDisplay pingDisplay = new PingDisplay();
+
+    public static boolean inMultiplayer() {
+        return Matchmaking.inLobby() || P2P.connected();
+    }
+
+    public static void setupDungeon() {
+        if (CardCrawlGame.mode == CardCrawlGame.GameMode.CHAR_SELECT)
+        {
+            TipTracker.neverShowAgain("NEOW_SKIP");
+
+            if (Settings.seed == null) {
+                long sourceTime = System.nanoTime();
+                Random rng = new Random(sourceTime);
+                Settings.seedSourceTimestamp = sourceTime;
+                Settings.seed = SeedHelper.generateUnoffensiveSeed(rng);
+            } else {
+                Settings.seedSet = true;
+            }
+
+            CardCrawlGame.mainMenuScreen.isFadingOut = true;
+            CardCrawlGame.mainMenuScreen.fadeOutMusic();
+            Settings.isDailyRun = false;
+            boolean isTrialSeed = TrialHelper.isTrialSeed(SeedHelper.getString(Settings.seed));
+            if (isTrialSeed) {
+                Settings.specialSeed = Settings.seed;
+                long sourceTime = System.nanoTime();
+                Random rng = new Random(sourceTime);
+                Settings.seed = SeedHelper.generateUnoffensiveSeed(rng);
+                Settings.isTrial = true;
+            }
+
+            ModHelper.setModsFalse();
+            AbstractDungeon.generateSeeds();
+            AbstractDungeon.isAscensionMode = CoopMenu.screen.isAscensionMode;
+            if (AbstractDungeon.isAscensionMode) {
+                AbstractDungeon.ascensionLevel = CoopMenu.screen.ascensionLevel;
+            } else {
+                AbstractDungeon.ascensionLevel = 0;
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
     public static void initialize() {
         new DuoSpire();
     }
@@ -62,12 +130,40 @@ public class DuoSpire implements
     }
 
     @Override
+    public void receiveRender(SpriteBatch sb) {
+        if (chat != null)
+            chat.render(sb);
+    }
+
+    @Override
+    public void receivePostUpdate() {
+        P2P.postUpdate();
+    }
+
+
+
+
+    /*All initialization stuff below this point.*/
+
+    @Override
     public void receivePostInitialize() {
+        coopPrefs = SaveHelper.getPrefs("DUOSPIRE");
+
         //This loads the image used as an icon in the in-game mods menu.
         Texture badgeTexture = TextureLoader.getTexture(resourcePath("badge.png"));
         //Set up the mod information displayed in the in-game mods menu.
         //The information used is taken from your pom.xml file.
-        BaseMod.registerModBadge(badgeTexture, info.Name, GeneralUtils.arrToString(info.Authors), info.Description, null);
+        String[] text = CardCrawlGame.languagePack.getUIString(makeID(modID)).TEXT;
+        BaseMod.registerModBadge(badgeTexture, text[0], GeneralUtils.arrToString(info.Authors), text[1], null);
+
+        chat = new ChatBox(Settings.WIDTH / 2f, Settings.HEIGHT - 200 * Settings.scale, 7);
+        chat.move(Settings.WIDTH / 2f, Settings.HEIGHT - 180 * Settings.scale - (chat.getHeight() / 2f));
+
+        CoopMenu.buttonText = text[2];
+        CoopMenu.screen = new CoopMenuScreen();
+
+        Matchmaking.init();
+        P2P.init();
     }
 
     @Override
@@ -116,7 +212,7 @@ public class DuoSpire implements
         BaseMod.loadCustomStringsFile(RelicStrings.class,
                 localizationPath(lang, "RelicStrings.json"));
         BaseMod.loadCustomStringsFile(UIStrings.class,
-                localizationPath(lang, "CharacterStrings.json"));
+                localizationPath(lang, "UIStrings.json"));
     }
 
     @Override

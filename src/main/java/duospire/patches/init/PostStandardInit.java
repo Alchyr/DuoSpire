@@ -16,9 +16,8 @@ import java.util.List;
 public class PostStandardInit {
     @SpirePrefixPatch
     public static void init(String[] whatever) {
-        registerColors();
-
         registerEnumColors();
+        registerColors();
     }
 
     public static void registerColors() {

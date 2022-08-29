@@ -12,5 +12,70 @@
       "This": "Contains pairs of Strings, used to get values based on keys.",
       "This is a key": "This is a value."
     }
+  },
+  "${modID}:${modID}": {
+    "TEXT": [
+      "Duo Spire",
+      "Two-player cooperative Spire slaying.",
+      "Co-op"
+    ]
+  },
+  "${modID}:LibraryTabs": {
+    "TEXT": [
+      "Co-op %s"
+    ]
+  },
+  "${modID}:CoopMenuScreen": {
+    "TEXT": [
+      "Leave",
+      "Joining lobby...",
+      "Swapping connection method...",
+      "Setting up game..."
+    ]
+  },
+  "${modID}:LobbyPanel": {
+    "TEXT": [
+      "Name",
+      "Public?",
+      "Same Mods",
+      "No Lobbies Found.",
+      "Yes",
+      "No",
+      "Searching...",
+      "Lobby is no longer valid.",
+      "Joining...",
+      "Key",
+      "'s Lobby",
+      "Public",
+      "Same Mods Required",
+      "Create",
+      "Enter the password.",
+      "Waiting for password...",
+      "Incorrect password.",
+      "Ascension",
+      "Level ",
+      "Ascension Mode",
+      "Runs get harder as you win... (Winstreaks are unaffected)",
+      "Embark",
+      "Creating...",
+      "Host",
+      "Failed to search.",
+      "Join",
+      "Steam connection not detected."
+    ]
+  },
+  "${modID}:Matchmaking": {
+    "TEXT": [
+      "Left lobby.",
+      "Entered game.",
+      "Another player has joined the lobby.",
+      "Other player left.",
+      "The host left.",
+      "Invalid lobby.",
+      "Failed to create lobby.",
+      "No connection.",
+      "Attempt timed out.",
+      "<No Name>"
+    ]
   }
 }

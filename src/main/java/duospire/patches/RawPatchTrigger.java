@@ -5,8 +5,8 @@ import com.evacipated.cardcrawl.modthespire.ModInfo;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import duospire.patches.gen.CharacterColorEnumFields;
-import duospire.patches.gen.MultiplayerGeneration;
-import duospire.util.BytecodeTranslator;
+import duospire.generation.MultiplayerGeneration;
+import duospire.generation.BytecodeTranslator;
 import javassist.CannotCompileException;
 import javassist.ClassPool;
 import javassist.CtBehavior;
@@ -45,6 +45,7 @@ public class RawPatchTrigger {
         CharacterColorEnumFields.generate(pool);
 
         MultiplayerGeneration.patch(finder, pool);
+        BaseModification.patch(finder, pool);
 
         System.out.println("Raw patches complete.");
 

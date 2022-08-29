@@ -1,4 +1,4 @@
-package duospire.util;
+package duospire.generation;
 
 import duospire.DuoSpire;
 import javassist.*;
