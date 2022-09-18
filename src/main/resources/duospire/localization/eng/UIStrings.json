@@ -30,7 +30,8 @@
       "Leave",
       "Joining lobby...",
       "Swapping connection method...",
-      "Setting up game..."
+      "Setting up game...",
+      "Starting game..."
     ]
   },
   "${modID}:LobbyPanel": {

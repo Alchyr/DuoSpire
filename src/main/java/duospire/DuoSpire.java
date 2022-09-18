@@ -78,6 +78,8 @@ public class DuoSpire implements
     public static ChatBox chat;
     public static final PingDisplay pingDisplay = new PingDisplay();
 
+    public static boolean isHost = false;
+
     public static boolean inMultiplayer() {
         return Matchmaking.inLobby() || P2P.connected();
     }
@@ -96,8 +98,6 @@ public class DuoSpire implements
                 Settings.seedSet = true;
             }
 
-            CardCrawlGame.mainMenuScreen.isFadingOut = true;
-            CardCrawlGame.mainMenuScreen.fadeOutMusic();
             Settings.isDailyRun = false;
             boolean isTrialSeed = TrialHelper.isTrialSeed(SeedHelper.getString(Settings.seed));
             if (isTrialSeed) {

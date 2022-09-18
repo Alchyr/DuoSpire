@@ -42,7 +42,7 @@ public class BytecodeTranslator {
             CtMethod method = clz.getDeclaredMethod(methodName);
             System.out.println(new BytecodeTranslator(method).translate());
         } catch (NotFoundException e) {
-            System.out.println("BytecodeTranslator: Method + " + className + "." + methodName + " not found.");
+            System.out.println("BytecodeTranslator: Method " + className + "." + methodName + " not found.");
         } catch (BadBytecode badBytecode) {
             badBytecode.printStackTrace();
         }

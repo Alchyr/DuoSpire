@@ -6,8 +6,11 @@ import com.codedisaster.steamworks.SteamException;
 import com.codedisaster.steamworks.SteamID;
 import com.codedisaster.steamworks.SteamNetworking;
 import com.codedisaster.steamworks.SteamNetworkingCallback;
+import com.megacrit.cardcrawl.core.Settings;
 import duospire.DuoSpire;
 import duospire.networking.matchmaking.Matchmaking;
+import duospire.patches.menu.CoopMenu;
+import duospire.ui.CoopMenuScreen;
 import duospire.util.RunningAverage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,9 +32,17 @@ public class P2P implements SteamNetworkingCallback {
     private static final long PING_ID_LIMIT = 0x7ffffffffffffffeL;
     private static final long NON_RESPONSE = -2L;
 
+    //Message type prefixes
     private static final byte PING = 0;
     private static final byte CMD = 1;
     private static final byte MSG = 2;
+
+    //Commands
+    public static final String TRIAL = "TRYL"; //incredible
+    public static final String SEEDSET = "SDST";
+    public static final String SEEDNORM = "SDNM";
+    public static final String ASCENSION = "ASCN";
+    public static final String START_RUN = "STRT";
 
     public static SteamNetworking networking;
     private static P2P callback;
@@ -241,6 +252,9 @@ public class P2P implements SteamNetworkingCallback {
                     sendPing(NON_RESPONSE);
                 }
             }
+            else {
+                connected = false;
+            }
         }
         catch (Exception e)
         {
@@ -260,7 +274,8 @@ public class P2P implements SteamNetworkingCallback {
                 delay = respondPingID == NON_RESPONSE ? 0 : BAD_CONNECTION_TIME;
             ping.add(delay);
 
-            p2pLogger.info("Received ping " + recPingID + " in response to ping " + respondPingID);
+            if (FULL_DEBUG_LOGGING)
+                p2pLogger.info("Received ping " + recPingID + " in response to ping " + respondPingID);
 
             if (recPingID > pingID) {
                 pingID = recPingID;
@@ -303,6 +318,57 @@ public class P2P implements SteamNetworkingCallback {
             if (FULL_DEBUG_LOGGING)
                 p2pLogger.info("Received command: " + msg);
 
+            //Braces are so that IntelliJ can collapse them.
+            switch (msg.substring(0, 4)) {
+                /*----- Dungeon info for non-host -----*/
+                case TRIAL: {
+                    if (isHost) {
+                        CoopMenu.screen.receiveConfirm(msg);
+                    }
+                    else {
+                        Settings.isTrial = true;
+                        Settings.specialSeed = Long.parseLong(msg.substring(4));
+                        P2P.sendCommand(P2P.TRIAL + Settings.specialSeed);
+                    }
+                    break;
+                }
+                case SEEDSET: {
+                    if (isHost) {
+                        CoopMenu.screen.receiveConfirm(msg);
+                    }
+                    else {
+                        Settings.seedSet = true;
+                        Settings.seed = Long.parseLong(msg.substring(4));
+                        P2P.sendCommand(P2P.SEEDSET + Settings.seed);
+                    }
+                    break;
+                }
+                case SEEDNORM: {
+                    if (isHost) {
+                        CoopMenu.screen.receiveConfirm(msg);
+                    }
+                    else {
+                        Settings.seed = Long.parseLong(msg.substring(4));
+                        P2P.sendCommand(P2P.SEEDNORM + Settings.seed);
+                    }
+                    break;
+                }
+                case ASCENSION: {
+                    if (isHost) {
+                        CoopMenu.screen.receiveConfirm(msg);
+                    }
+                    else {
+                        CoopMenu.screen.ascensionLevel = Integer.parseInt(msg.substring(4));
+                        CoopMenu.screen.isAscensionMode = CoopMenu.screen.ascensionLevel != 0;
+                        P2P.sendCommand(P2P.ASCENSION + CoopMenu.screen.ascensionLevel);
+                    }
+                    break;
+                }
+                case START_RUN: {
+                    CoopMenu.screen.finishEmbark();
+                    break;
+                }
+            }
         }
         catch (CharacterCodingException e) {
             e.printStackTrace();

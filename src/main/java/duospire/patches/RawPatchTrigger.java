@@ -2,8 +2,14 @@ package duospire.patches;
 
 import com.evacipated.cardcrawl.modthespire.Loader;
 import com.evacipated.cardcrawl.modthespire.ModInfo;
+import com.evacipated.cardcrawl.modthespire.Patcher;
 import com.evacipated.cardcrawl.modthespire.lib.SpirePatch;
+import com.evacipated.cardcrawl.modthespire.patcher.PatchInfo;
+import com.evacipated.cardcrawl.modthespire.patcher.PatchingException;
+import com.megacrit.cardcrawl.actions.AbstractGameAction;
+import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
+import duospire.patches.gen.BaseModification;
 import duospire.patches.gen.CharacterColorEnumFields;
 import duospire.generation.MultiplayerGeneration;
 import duospire.generation.BytecodeTranslator;
@@ -15,15 +21,16 @@ import javassist.bytecode.BadBytecode;
 import org.clapper.util.classutil.ClassFinder;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
-@SpirePatch(
-        clz = CardCrawlGame.class,
-        method = SpirePatch.CONSTRUCTOR
-)
 public class RawPatchTrigger {
-    public static void Raw(CtBehavior ctBehavior) throws NotFoundException, IllegalAccessException, NoSuchFieldException, ClassNotFoundException, CannotCompileException, BadBytecode {
+    public static void begin(CtBehavior ctBehavior) throws NotFoundException, IllegalAccessException, NoSuchFieldException, ClassNotFoundException, CannotCompileException, BadBytecode {
         System.out.println("Starting raw patches.");
+
+
 
         ClassFinder finder = new ClassFinder();
 
@@ -50,12 +57,15 @@ public class RawPatchTrigger {
         System.out.println("Raw patches complete.");
 
         //Testing bytecode translator
-        BytecodeTranslator translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("LongTest"));
+        BytecodeTranslator translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("BytecodeTest"));
         System.out.println(translator.translate());
     }
 
-    public static void LongTest() {
-        long a = 1;
+    public static void BytecodeTest() {
+        AbstractPlayer.PlayerClass enumVar = AbstractPlayer.PlayerClass.IRONCLAD;
+        enumVar = AbstractPlayer.PlayerClass.THE_SILENT;
+
+        /*long a = 1;
         long b = 3483;
         long[] arr = new long[] { a, b };
 
@@ -63,6 +73,13 @@ public class RawPatchTrigger {
 
         int i = 1;
         ++c;
-        ++i;
+        ++i;*/
+
+        AbstractGameAction anonymousClass = new AbstractGameAction() {
+            @Override
+            public void update() {
+                this.isDone = true;
+            }
+        };
     }
 }

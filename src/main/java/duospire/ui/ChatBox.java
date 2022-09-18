@@ -3,6 +3,7 @@ package duospire.ui;
 import basemod.interfaces.TextReceiver;
 import basemod.patches.com.megacrit.cardcrawl.helpers.input.ScrollInputProcessor.TextInput;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
@@ -56,6 +57,7 @@ public class ChatBox implements TextReceiver {
     private String visibleInputText;
 
     public boolean active;
+    private boolean justEnded;
     public float fadeDelay;
     private float blipTimer;
     private float alpha;
@@ -69,6 +71,7 @@ public class ChatBox implements TextReceiver {
         messagesHeight = lineHeight * maxLines;
         clearInput();
         active = false;
+        justEnded = false;
         alpha = 0;
         blipTimer = 0;
 
@@ -102,7 +105,7 @@ public class ChatBox implements TextReceiver {
         inputText = s;
         if (inputText.length() < lastLength)
             visibleStart -= (lastLength - inputText.length());
-        if (visibleStart > inputText.length())
+        if (visibleStart > inputText.length() || visibleStart < 0)
             visibleStart = 0;
         visibleInputText = inputText.substring(visibleStart);
         while (FontHelper.getWidth(FontHelper.tipBodyFont, visibleInputText, 1) > MAX_TEXT_WIDTH) {
@@ -149,7 +152,8 @@ public class ChatBox implements TextReceiver {
         clearInput();
     }
     public void stopInput() {
-        fadeDelay = FAST_FADE_TIME;
+        if (fadeDelay > FAST_FADE_TIME)
+            fadeDelay = FAST_FADE_TIME;
         active = false;
         TextInput.stopTextReceiver(this);
         clearInput();
@@ -177,6 +181,7 @@ public class ChatBox implements TextReceiver {
             }
             else
             {
+                justEnded = true;
                 if (!inputText.isEmpty())
                 {
                     sendInput();
@@ -212,6 +217,11 @@ public class ChatBox implements TextReceiver {
     private final Rectangle clipBounds = new Rectangle(0, 0, 1, 1);
     public void render(SpriteBatch sb)
     {
+        if (!active && !justEnded && Gdx.input.isKeyJustPressed(Input.Keys.ENTER) && !TextInput.isTextInputActive()) {
+            startInput();
+        }
+        justEnded = false;
+
         blipTimer = (blipTimer + Gdx.graphics.getRawDeltaTime()) % 0.5f;
         fadeDelay = Math.max(0, fadeDelay - Gdx.graphics.getRawDeltaTime());
 

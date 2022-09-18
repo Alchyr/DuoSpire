@@ -76,6 +76,10 @@ public class LobbyTextInput implements TextReceiver {
         this.onEnter = null;
         this.active = false;
     }
+    public void cancel()
+    {
+        this.active = false;
+    }
 
     public void setOnEnter(Runnable r) {
         this.onEnter = r;

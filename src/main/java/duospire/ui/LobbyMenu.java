@@ -220,6 +220,12 @@ public class LobbyMenu {
 
                 data.name = matchmaking.getLobbyData(lobby, Matchmaking.lobbyNameKey);
                 data.sameMods = metadataTrue.equals(matchmaking.getLobbyData(lobby, Matchmaking.lobbySameModsKey));
+                if (!data.sameMods) {
+                    String modList = matchmaking.getLobbyData(lobby, lobbyModsKey);
+                    if (getModList().equals(modList)) {
+                        data.sameMods = true;
+                    }
+                }
                 data.isPublic = metadataTrue.equals(matchmaking.getLobbyData(lobby, Matchmaking.lobbyPublicKey));
                 data.ascension = Integer.parseInt(matchmaking.getLobbyData(lobby, Matchmaking.lobbyAscensionKey));
 
@@ -382,14 +388,17 @@ public class LobbyMenu {
                     if (refreshButtonHitbox.hovered && InputHelper.justClickedLeft) {
                         InputHelper.justClickedLeft = false;
 
+                        passwordInput.cancel();
                         findLobbies();
                     }
                     else if (createButtonHitbox.hovered && InputHelper.justClickedLeft) {
                         InputHelper.justClickedLeft = false;
 
+                        passwordInput.cancel();
                         startCreate();
                     }
                     else if (lobbyCreateHitbox.hovered && InputHelper.justClickedLeft) {
+                        passwordInput.cancel();
                         tryPassword();
                     }
                     else {
@@ -402,12 +411,18 @@ public class LobbyMenu {
                     lobbyAreaHitbox.update();
                     updateTopButtons();
 
+                    nameInput.update();
+                    if (!publicRoom.enabled) {
+                        passwordInput.update();
+                    }
+
                     if (refreshButtonHitbox.hovered && InputHelper.justClickedLeft) {
                         InputHelper.justClickedLeft = false;
                         findLobbies();
+                        nameInput.cancel();
+                        passwordInput.cancel();
                     }
                     else {
-                        nameInput.update();
                         publicRoom.update();
                         lobbyCreateHitbox.update();
 
@@ -417,15 +432,13 @@ public class LobbyMenu {
 
                         if (lobbyCreateHitbox.hovered && InputHelper.justClickedLeft) {
                             mode = 4;
+                            nameInput.cancel();
+                            passwordInput.cancel();
 
                             Matchmaking.goal = CREATE_GOAL;
                             logger.info("Attempting to create a new lobby.");
                             matchmaking.createLobby(SteamMatchmaking.LobbyType.Public, 2);
                             break;
-                        }
-
-                        if (!publicRoom.enabled) {
-                            passwordInput.update();
                         }
 
                         sameModsToggle.update();
@@ -550,6 +563,8 @@ public class LobbyMenu {
             if (waitingLobby.isValid && waitingLobby.id.isValid()) {
                 if (String.valueOf(passwordInput.getCurrentText().hashCode()).equals(matchmaking.getLobbyData(waitingLobby.id, Matchmaking.lobbyPasswordKey)))
                 {
+                    passwordInput.cancel();
+
                     mode = 1;
                     matchmakingLogger.info("Joining...");
 
@@ -563,6 +578,8 @@ public class LobbyMenu {
                 }
             }
             else {
+                passwordInput.cancel();
+
                 showTempMessage(TEXT[7], 1);
                 lobbies.remove(waitingLobby);
                 waitingLobby.invalidate();

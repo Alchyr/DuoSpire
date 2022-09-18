@@ -6,7 +6,9 @@ import basemod.abstracts.CustomCard;
 import com.megacrit.cardcrawl.actions.AbstractGameAction;
 import com.megacrit.cardcrawl.actions.common.DamageAction;
 import com.megacrit.cardcrawl.cards.AbstractCard;
+import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.AbstractCreature;
+import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.monsters.AbstractMonster;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import duospire.DuoSpire;
@@ -122,6 +124,7 @@ public class MultiplayerGeneration {
     }
 
     private static final List<CtClass> generated = new ArrayList<>();
+    private static final List<CtClass> generatedCharacters = new ArrayList<>();
     private static final List<CtClass> generatedCards = new ArrayList<>(); //Cards *only* go in this list as they need specific modifications.
     private static final List<CtClass> generatedMonsters = new ArrayList<>(); //Cards *only* go in this list as they need specific modifications.
 
@@ -135,18 +138,21 @@ public class MultiplayerGeneration {
 
         ClassFilter cardFilter = new AndClassFilter(
                 new NotClassFilter(new InterfaceOnlyClassFilter()),
-                new NotDeprecatedFilter(),
+                //new NotDeprecatedFilter(), people might still use deprecated stuff
                 new SubclassClassFilter(AbstractCard.class)
         );
         ClassFilter actionFilter = new AndClassFilter(
                 new NotClassFilter(new InterfaceOnlyClassFilter()),
-                new NotDeprecatedFilter(),
+                //new NotDeprecatedFilter(),
                 new SubclassClassFilter(AbstractGameAction.class)
         );
         ClassFilter monsterFilter = new AndClassFilter(
                 new NotClassFilter(new InterfaceOnlyClassFilter()),
-                new NotDeprecatedFilter(),
                 new SubclassClassFilter(AbstractMonster.class)
+        );
+        ClassFilter characterFilter = new AndClassFilter(
+                new NotClassFilter(new InterfaceOnlyClassFilter()),
+                new SubclassClassFilter(AbstractPlayer.class)
         );
 
         System.out.println("\t- Generating class copies.");
@@ -168,6 +174,12 @@ public class MultiplayerGeneration {
 
         generator.generateClasses(pool, cardClasses, generatedCards);
 
+        ArrayList<ClassInfo> characterClasses = new ArrayList<>();
+        finder.findClasses(characterClasses, characterFilter);
+
+        generator.generateClass(pool, pool.get(AbstractPlayer.class.getName()), generatedCharacters);
+        generator.generateClasses(pool, characterClasses, generatedCharacters);
+
         if (!generator.clean()) {
             System.out.println("\t- Superclasses for " + generator.incomplete() + " classes were not generated.");
         }
@@ -177,11 +189,17 @@ public class MultiplayerGeneration {
 
         replaceClasses(pool);
 
-        multiplayerAdjustments(generated, generatedCards);
+        ClassReplacer generalAdjuster = new ClassReplacer(classReplacements);
+        CardAdjuster cardAdjuster = new CardAdjuster(classReplacements);
+
+        generalAdjuster.adjust(generated);
+        generalAdjuster.adjust(generatedMonsters);
+        generalAdjuster.adjust(generatedCharacters);
+        cardAdjuster.adjust(generatedCards);
 
         registerCards(pool);
 
-        BytecodeTranslator.translate(pool, "duospire.com.megacrit.cardcrawl.actions.common.DuoSpireDamageAction", "use");
+        //BytecodeTranslator.translate(pool, "duospire.com.megacrit.cardcrawl.actions.common.DuoSpireDamageAction", "update");
     }
 
     private static void adjustFieldsAndSignatures(List<CtClass> toAdjust) {
@@ -285,20 +303,14 @@ public class MultiplayerGeneration {
 
         System.out.println("\t- Adjusting fields and method signatures.");
         adjustFieldsAndSignatures(generated);
+        adjustFieldsAndSignatures(generatedMonsters);
         adjustFieldsAndSignatures(generatedCards);
 
         System.out.println("\t- Replacing references.");
         ReferenceReplacer replacer = new ReferenceReplacer(classReplacements);
         replacer.replaceAll(generated);
+        replacer.replaceAll(generatedMonsters);
         replacer.replaceAll(generatedCards);
-    }
-
-    private static void multiplayerAdjustments(List<CtClass> general, List<CtClass> cards) {
-        ClassReplacer generalAdjuster = new ClassReplacer(classReplacements);
-        CardAdjuster cardAdjuster = new CardAdjuster(classReplacements);
-
-        generalAdjuster.adjust(general);
-        cardAdjuster.adjust(cards);
     }
 
     private static class ClassReplacer extends ExprEditor {
@@ -398,7 +410,7 @@ public class MultiplayerGeneration {
 
             CtClass replacement = classReplacements.get(f.getClassName());
             if (replacement != null) {
-                System.out.println("UNREPLACED FIELDACCESS");
+                System.out.println("UNREPLACED FIELDACCESS: " + f.getClass().getSimpleName() + " -> " + replacement.getSimpleName());
             }
         }
 
@@ -413,7 +425,7 @@ public class MultiplayerGeneration {
             }
 
             if (replacement != null) {
-                System.out.println("UNREPLACED INSTANCEOF");
+                System.out.println("UNREPLACED INSTANCEOF: " + i.getClass().getSimpleName() + " -> " + replacement.getSimpleName());
                 //i.replace("$_ = $1 instanceof " + replacement.getName() + ";");
             }
         }
@@ -432,6 +444,34 @@ public class MultiplayerGeneration {
                 System.out.println("UNREPLACED CAST");
                 //c.replace("$_ = (" + replacement.getName() + ") $1;");
             }
+        }
+    }
+
+    private static class CharacterAdjuster extends ClassReplacer {
+        public CharacterAdjuster(Map<String, CtClass> classReplacements) {
+            super(classReplacements);
+        }
+
+        @Override
+        public void edit(FieldAccess f) {
+            try {
+                if (f.isReader()) {
+                    if (f.getClassName().equals(AbstractPlayer.PlayerClass.class.getName())) {
+                        CtField playerClassField = f.getField();
+                        playerClassField.getName();
+                    }
+                    else {
+                        if (f.getField().getType().getName().equals(AbstractPlayer.PlayerClass.class.getName())) {
+                            CtField playerClassField = f.getField();
+                            playerClassField.getName();
+                        }
+                    }
+                }
+            }
+            catch (NotFoundException e) {
+                e.printStackTrace();
+            }
+            super.edit(f);
         }
     }
 

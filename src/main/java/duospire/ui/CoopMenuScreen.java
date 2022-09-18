@@ -66,6 +66,7 @@ public class CoopMenuScreen {
     private static final int IN_LOBBY = 2;
     private static final int ESTABLISH_P2P = 3;
     private static final int SETUP_GAME = 4;
+    private static final int EMBARK = 5;
 
     //UI
     public MenuCancelButton button = new MenuCancelButton();
@@ -140,7 +141,7 @@ public class CoopMenuScreen {
     }
 
     public void startEmbark() {
-        if (Matchmaking.inLobby() && Matchmaking.isHost && Matchmaking.otherPlayer != null && Matchmaking.inLobby(Matchmaking.otherPlayer)) {
+        if (Matchmaking.inLobby() && isHost && Matchmaking.otherPlayer != null && Matchmaking.inLobby(Matchmaking.otherPlayer)) {
             if (leftSelect.selected != null && rightSelect.selected != null) {
                 this.button.hide();
 
@@ -159,25 +160,38 @@ public class CoopMenuScreen {
             statusMsg = TEXT[2];
         }
     }
+    public void finishEmbark() {
+        if (Matchmaking.otherPlayer != null && Matchmaking.inLobby(Matchmaking.otherPlayer)) {
+            mode = EMBARK;
+
+            CardCrawlGame.mainMenuScreen.isFadingOut = true;
+            CardCrawlGame.mainMenuScreen.fadeOutMusic();
+        }
+    }
 
     private void sendDungeonInfo() {
         confirmData.clear();
 
-        if (Settings.seedSet)
-            confirmData.add(P2P.sendCommand("seedset" + Settings.seed.toString()));
-        else
-            confirmData.add(P2P.sendCommand("seed" + Settings.seed.toString()));
-
         if (Settings.isTrial)
         {
-            confirmData.add(P2P.sendCommand("trial" + Settings.specialSeed));
+            confirmData.add(P2P.sendCommand(P2P.TRIAL + Settings.specialSeed));
         }
+        confirmData.add(P2P.sendCommand((Settings.seedSet ? P2P.SEEDSET : P2P.SEEDNORM) + Settings.seed.toString()));
 
         //Ascension level 0 = ascension disabled
-        confirmData.add(P2P.sendCommand("ascension" + AbstractDungeon.ascensionLevel));
+        confirmData.add(P2P.sendCommand(P2P.ASCENSION + AbstractDungeon.ascensionLevel));
 
         //MultiplayerHelper.sendP2PString("start_game");
         //MultiplayerHelper.sendP2PMessage("Starting game...");
+    }
+    public void receiveConfirm(String data) {
+        if (confirmData.remove(data)) {
+            if (FULL_DEBUG_LOGGING)
+                matchmakingLogger.info(data + " confirmed.");
+        }
+        else {
+            matchmakingLogger.warn("Received unknown confirmation: " + data);
+        }
     }
 
     public void update() {
@@ -210,9 +224,9 @@ public class CoopMenuScreen {
                 }
                 groundColor.a = Math.min(1, groundColor.a + Gdx.graphics.getDeltaTime() * 1.5f);
                 currentProcessing = leftSelect;
-                leftSelect.update(Matchmaking.isHost);
+                leftSelect.update(isHost);
                 currentProcessing = rightSelect;
-                rightSelect.update(!Matchmaking.isHost);
+                rightSelect.update(!isHost);
                 currentProcessing = null;
 
                 updateAscension();
@@ -224,12 +238,15 @@ public class CoopMenuScreen {
                 break;
             case ESTABLISH_P2P:
                 if (P2P.connected()) {
+                    Matchmaking.leave();
+
                     mode = SETUP_GAME;
                     statusMsg = TEXT[3];
-                    //Send data for game including selected characters to ensure everything is consistent.
+                    //Send data for game to ensure everything is consistent.
+
                     if (isHost) {
                         DuoSpire.setupDungeon(); //TODO - Set up players
-                        sendDungeonInfo(); //TODO - Send characters for confirmation
+                        sendDungeonInfo();
                     }
                 }
                 break;
@@ -237,7 +254,11 @@ public class CoopMenuScreen {
                 if (isHost) {
                     if (confirmData.isEmpty()) {
                         //The host is waiting for the second player to confirm they've received all data by sending the data back and it must match.
-                        Matchmaking.leave();
+                        statusMsg = TEXT[4];
+                        CardCrawlGame.mainMenuScreen.isFadingOut = true;
+                        CardCrawlGame.mainMenuScreen.fadeOutMusic();
+                        P2P.sendCommand(P2P.START_RUN);
+                        mode = EMBARK;
                     }
                 } //Non-host player is just waiting for a "start game" message from host
                 break;
@@ -248,7 +269,7 @@ public class CoopMenuScreen {
     }
 
     private void updateScrolling() {
-        if (Matchmaking.isHost) {
+        if (isHost) {
             leftSelect.updateScrolling(true);
             rightSelect.updateScrolling(false);
         }
@@ -348,8 +369,8 @@ public class CoopMenuScreen {
 
         leftSelect.renderCharacter(sb);
         rightSelect.renderCharacter(sb);
-        leftSelect.render(sb, Matchmaking.isHost);
-        rightSelect.render(sb, !Matchmaking.isHost);
+        leftSelect.render(sb, isHost);
+        rightSelect.render(sb, !isHost);
         embarkButton.render(sb);
         renderAscensionMode(sb);
     }
@@ -442,7 +463,7 @@ public class CoopMenuScreen {
 
     public void resetOtherPlayer() {
         otherPlayerOptions.clear();
-        if (Matchmaking.isHost) {
+        if (isHost) {
             rightSelect.selected = null;
         }
         else {
@@ -474,7 +495,7 @@ public class CoopMenuScreen {
         if (currentProcessing != null) {
             currentProcessing.selected = option;
 
-            if (Matchmaking.isHost && leftSelect.selected != null && rightSelect.selected != null) {
+            if (isHost && leftSelect.selected != null && rightSelect.selected != null) {
                 embarkButton.enable();
             }
 
@@ -482,30 +503,32 @@ public class CoopMenuScreen {
         }
     }
     public void setPlayerChar(String charName) {
-        if ((Matchmaking.isHost ? leftSelect : rightSelect).setCharacter(charName)) {
-            if (Matchmaking.isHost && leftSelect.selected != null && rightSelect.selected != null) {
+        if ((isHost ? leftSelect : rightSelect).setCharacter(charName)) {
+            if (isHost && leftSelect.selected != null && rightSelect.selected != null) {
                 embarkButton.enable();
             }
+            return;
         }
 
         matchmakingLogger.info("Failed to set character to " + charName);
     }
     public void setOtherPlayerChar(String charName) {
-        if ((Matchmaking.isHost ? rightSelect : leftSelect).setCharacter(charName)) {
-            if (Matchmaking.isHost && leftSelect.selected != null && rightSelect.selected != null) {
+        if ((isHost ? rightSelect : leftSelect).setCharacter(charName)) {
+            if (isHost && leftSelect.selected != null && rightSelect.selected != null) {
                 embarkButton.enable();
             }
+            return;
         }
 
         //Most likely case is that joining the lobby removed the chosen character as the joining player did not have them
         matchmakingLogger.info("Failed to set character to " + charName);
     }
     public void setOtherPlayerScroll(float percent) {
-        (Matchmaking.isHost ? rightSelect : leftSelect).scrolledUsingBar(percent);
+        (isHost ? rightSelect : leftSelect).scrolledUsingBar(percent);
     }
 
     public String getLocalChar() {
-        if (Matchmaking.isHost) {
+        if (isHost) {
             return leftSelect.selected != null ? leftSelect.selected.c.chosenClass.name() : "null";
         }
         else {
@@ -513,7 +536,7 @@ public class CoopMenuScreen {
         }
     }
     public String getOtherChar() {
-        if (Matchmaking.isHost) {
+        if (isHost) {
             return rightSelect.selected != null ? rightSelect.selected.c.chosenClass.name() : "null";
         }
         else {

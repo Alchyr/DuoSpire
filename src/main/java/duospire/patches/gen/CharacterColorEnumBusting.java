@@ -2,6 +2,8 @@ package duospire.patches.gen;
 
 import com.evacipated.cardcrawl.modthespire.*;
 import com.evacipated.cardcrawl.modthespire.lib.SpireEnum;
+import com.evacipated.cardcrawl.modthespire.patcher.PatchInfo;
+import com.evacipated.cardcrawl.modthespire.patcher.PatchingException;
 import duospire.annotations.DynamicEnum;
 import duospire.patches.init.PostStandardInit;
 import javassist.ClassPool;
@@ -9,6 +11,7 @@ import javassist.ClassPool;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Map;
+import java.util.TreeSet;
 
 public class CharacterColorEnumBusting {
     public enum DUMMY {
@@ -17,7 +20,7 @@ public class CharacterColorEnumBusting {
     }
     @SpireEnum
     public static DUMMY IMPOSTER;
-    //Used to trigger the class to be loaded at the correct time.
+    //Used to trigger the class to be loaded at the correct time (during the enum process)
 
     private static Field enumBusterMapField;
     private static Field classLoaderField;

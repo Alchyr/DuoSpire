@@ -1,5 +1,7 @@
-package duospire.patches;
+package duospire.patches.gen;
 
+import basemod.ReflectionHacks;
+import com.megacrit.cardcrawl.powers.AbstractPower;
 import javassist.ClassPool;
 import org.clapper.util.classutil.ClassFinder;
 

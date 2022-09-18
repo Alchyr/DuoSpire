@@ -13,6 +13,7 @@ import com.megacrit.cardcrawl.screens.charSelect.CharacterOption;
 import duospire.networking.gameplay.P2P;
 import duospire.patches.menu.CoopMenu;
 import duospire.ui.LobbyMenu;
+import duospire.util.GeneralUtils;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -23,7 +24,7 @@ import static duospire.DuoSpire.*;
 public class Matchmaking implements SteamMatchmakingCallback {
     private final ByteBuffer chatMessage = ByteBuffer.allocateDirect(4096);
 
-    public static final String FUNC = "" + (char) 0 + (char) 0 + (char) 0;
+    public static final String FUNC = "¤»§";
 
     private static final UIStrings uiStrings = CardCrawlGame.languagePack.getUIString(makeID("Matchmaking"));
     private static final String[] TEXT = uiStrings.TEXT;
@@ -31,13 +32,13 @@ public class Matchmaking implements SteamMatchmakingCallback {
     private static final String loadingName = "<loading>";
 
     //Lobby info keys
-    public static final String lobbyDuospireKey = "DUOSPIRE";
+    public static final String lobbyDuospireKey = "DUOSPIRE" + info.ModVersion.toString();
     public static final String lobbyNameKey = "name";
     public static final String lobbyPublicKey = "is_public";
     public static final String lobbyPasswordKey = "password";
     public static final String lobbyAscensionKey = "ascension";
     public static final String lobbySameModsKey = "same_mods";
-    private static final String lobbyModsKey = "mod_list";
+    public static final String lobbyModsKey = "mod_list";
     private static final String lobbyKeysUnlockedKey = "final_act";
 
     //Chat message stuff
@@ -65,8 +66,8 @@ public class Matchmaking implements SteamMatchmakingCallback {
 
     private static LobbyMenu lobbyMenu;
 
+    //lobby info
     public static SteamID currentLobbyID = null;
-    public static boolean isHost = false;
     public static SteamID otherPlayer = null;
     public static String otherPlayerName = loadingName;
 
@@ -103,7 +104,7 @@ public class Matchmaking implements SteamMatchmakingCallback {
             matchmaking.addRequestLobbyListDistanceFilter(SteamMatchmaking.LobbyDistanceFilter.Far);
             matchmakingLogger.info("distance: far");
             matchmaking.addRequestLobbyListStringFilter(lobbyDuospireKey, metadataTrue, SteamMatchmaking.LobbyComparison.Equal);
-            //matchmaking.addRequestLobbyListStringFilter(lobbyModsKey, generateModList(), SteamMatchmaking.LobbyComparison.Equal);
+            //matchmaking.addRequestLobbyListStringFilter(lobbyModsKey, getModList(), SteamMatchmaking.LobbyComparison.Equal);
             //Settings.setFinalActAvailability(); //ensure it's updated.
             //matchmaking.addRequestLobbyListStringFilter(lobbyKeysUnlockedKey, Settings.isFinalActAvailable ? metadataTrue : metadataFalse, SteamMatchmaking.LobbyComparison.Equal);
             //matchmakingLogger.info("4th act unlocked: " + (Settings.isFinalActAvailable ? metadataTrue : metadataFalse));
@@ -129,7 +130,7 @@ public class Matchmaking implements SteamMatchmakingCallback {
         matchmaking.addRequestLobbyListDistanceFilter(SteamMatchmaking.LobbyDistanceFilter.Worldwide);
         matchmakingLogger.info("distance: worldwide");
         matchmaking.addRequestLobbyListStringFilter(lobbyDuospireKey, metadataTrue, SteamMatchmaking.LobbyComparison.Equal);
-        //matchmaking.addRequestLobbyListStringFilter(lobbyModsKey, generateModList(), SteamMatchmaking.LobbyComparison.Equal);
+        //matchmaking.addRequestLobbyListStringFilter(lobbyModsKey, getModList(), SteamMatchmaking.LobbyComparison.Equal);
         //matchmaking.addRequestLobbyListStringFilter(lobbyCharacterKey, CardCrawlGame.chosenCharacter.name(), SteamMatchmaking.LobbyComparison.Equal);
         //matchmakingLogger.info("chosen character: " + CardCrawlGame.chosenCharacter.name());
         //Settings.setFinalActAvailability(); //ensure it's updated.
@@ -144,7 +145,7 @@ public class Matchmaking implements SteamMatchmakingCallback {
         if (matchmaking != null)
         {
             if (!searching) {
-                matchmakingLogger.info("Mod list: " + generateModList());
+                matchmakingLogger.info("Mod list: " + getModList());
                 return handler.startNormalSearch();
             }
             return true;
@@ -158,9 +159,9 @@ public class Matchmaking implements SteamMatchmakingCallback {
 
     public static void stopCoop()
     {
-        matchmakingLogger.info("Leaving queue.");
         if (searching)
         {
+            matchmakingLogger.info("Leaving queue.");
             searching = false;
         }
         goal = 0;
@@ -267,34 +268,46 @@ public class Matchmaking implements SteamMatchmakingCallback {
         matchmakingLogger.info("  - made by user: " + IDSource.getAccountID());
         matchmakingLogger.info("  - state changed: " + chatMemberStateChange.name());
 
-        if (currentLobbyID != null && currentUser != null && isHost) {
-            if (chatMemberStateChange == SteamMatchmaking.ChatMemberStateChange.Entered) {
-                if (matchmaking.getNumLobbyMembers(lobbyID) == 2) {
-                    CardCrawlGame.sound.play("DECK_OPEN");
-                    otherPlayer = IDChanged;
-                    otherPlayerName = loadingName;
-                    sendLobbyInfo();
-                } else {
-                    matchmakingLogger.info("Incorrect number of players: " + matchmaking.getNumLobbyMembers(lobbyID));
+        if (currentLobbyID != null && currentUser != null) {
+            if (isHost) {
+                if (chatMemberStateChange == SteamMatchmaking.ChatMemberStateChange.Entered) {
+                    if (matchmaking.getNumLobbyMembers(lobbyID) == 2) {
+                        CardCrawlGame.sound.play("DECK_OPEN");
+                        otherPlayer = IDChanged;
+                        otherPlayerName = loadingName;
+                        sendLobbyInfo();
+                    } else {
+                        matchmakingLogger.info("Incorrect number of players: " + matchmaking.getNumLobbyMembers(lobbyID));
+                    }
+                }
+                else {
+                    if (P2P.currentPartner != null && P2P.currentPartner.equals(otherPlayer)) {
+                        //Swapping to p2p
+                        otherPlayer = null;
+                        otherPlayerName = loadingName;
+                    }
+                    //Left, disconnected, kicked, banned
+                    else if (otherPlayer != null && matchmaking.getNumLobbyMembers(lobbyID) == 1) {
+                        CardCrawlGame.sound.play("DECK_CLOSE");
+                        otherPlayer = null;
+                        otherPlayerName = loadingName;
+
+                        CoopMenu.screen.resetOtherPlayer();
+                    }
                 }
             }
             else {
-                if (P2P.currentPartner.equals(otherPlayer)) {
-                    otherPlayer = null;
-                    otherPlayerName = loadingName;
-                }
-                //Left, disconnected, kicked, banned
-                else if (otherPlayer != null && matchmaking.getNumLobbyMembers(lobbyID) == 1) {
-                    CardCrawlGame.sound.play("DECK_CLOSE");
-                    otherPlayer = null;
-                    otherPlayerName = loadingName;
+                if (chatMemberStateChange != SteamMatchmaking.ChatMemberStateChange.Entered) {
+                    if (P2P.currentPartner != null && !P2P.currentPartner.equals(otherPlayer)) {
+                        CardCrawlGame.sound.play("DECK_CLOSE");
+                        otherPlayer = null;
+                        otherPlayerName = loadingName;
 
-                    if (!isHost) {
+                        CoopMenu.screen.resetOtherPlayer();
+
                         leave();
                         CoopMenu.screen.showLobbies(true);
-                        CoopMenu.screen.lobbyMenu.showTempMessage(TEXT[4], 4);
-                    } else {
-                        CoopMenu.screen.resetOtherPlayer();
+                        CoopMenu.screen.lobbyMenu.showTempMessage(TEXT[4], 3);
                     }
                 }
             }
@@ -308,15 +321,16 @@ public class Matchmaking implements SteamMatchmakingCallback {
     {
         if (currentLobbyID != null && currentLobbyID.isValid())
         {
-            matchmakingLogger.info("Sending message.");
-            if (matchmaking.sendLobbyChatMsg(currentLobbyID, msg))
-            {
-                matchmakingLogger.info("Message sent successfully.");
-            }
-            else
+            if (FULL_DEBUG_LOGGING)
+                matchmakingLogger.info("Sending message: " + msg);
+            if (!matchmaking.sendLobbyChatMsg(currentLobbyID, msg))
             {
                 matchmakingLogger.error("Message failed to send.");
             }
+            /*else
+            {
+                matchmakingLogger.info("Message sent successfully.");
+            }*/
         }
         else
         {
@@ -347,7 +361,7 @@ public class Matchmaking implements SteamMatchmakingCallback {
                     String sameMods = matchmaking.getLobbyData(lobby, lobbySameModsKey);
                     if (metadataTrue.equals(sameMods)) {
                         String modList = matchmaking.getLobbyData(lobby, lobbyModsKey);
-                        if (generateModList().equals(modList)) {
+                        if (getModList().equals(modList)) {
                             lobbies.add(lobby);
                         }
                     }
@@ -410,7 +424,7 @@ public class Matchmaking implements SteamMatchmakingCallback {
                         lobbyMenu.show(true);
                     }
                     else {
-                        String modList = generateModList();
+                        String modList = getModList();
                         matchmakingLogger.info("  - lobby modlist: " + modList);
                         matchmaking.setLobbyData(steamIDLobby, lobbySameModsKey, lobbyMenu.sameModsToggle.enabled ? metadataTrue : metadataFalse);
                         matchmaking.setLobbyData(steamIDLobby, lobbyModsKey, modList);
@@ -460,90 +474,105 @@ public class Matchmaking implements SteamMatchmakingCallback {
         }
     }
 
+    private final SteamMatchmaking.ChatEntry receivedChatEntry = new SteamMatchmaking.ChatEntry();
     @Override
     public void onLobbyChatMessage(SteamID lobbyID, SteamID userID, SteamMatchmaking.ChatEntryType chatEntryType, int msgIndex) {
-        matchmakingLogger.info("Lobby chat message for " + lobbyID);
-        matchmakingLogger.info("  - from user: " + userID.getAccountID());
-        matchmakingLogger.info("  - chat entry type: " + chatEntryType);
-        matchmakingLogger.info("  - chat id: #" + msgIndex);
+        if (FULL_DEBUG_LOGGING) {
+            matchmakingLogger.info("Lobby chat message for " + lobbyID);
+            matchmakingLogger.info("  - from user: " + userID.getAccountID());
+        }
+        /*matchmakingLogger.info("  - chat entry type: " + chatEntryType);
+        matchmakingLogger.info("  - chat id: #" + msgIndex);*/
 
-        try {
-            matchmaking.getLobbyChatEntry(lobbyID, msgIndex, new SteamMatchmaking.ChatEntry(), chatMessage);
+        if (!userID.equals(currentUser.getSteamID())) {
+            try {
+                chatMessage.clear();
+                int lim = matchmaking.getLobbyChatEntry(lobbyID, msgIndex, receivedChatEntry, chatMessage) - 1;
+                //-1 as it includes a null terminator, which is unnecessary for a java string
+                if (lim <= 0)
+                    return;
+                chatMessage.limit(lim);
+                String msg = CHARSET.decode(chatMessage).toString();
 
-            String msg = CHARSET.decode(chatMessage).toString();
-            chatMessage.clear();
+                if (FULL_DEBUG_LOGGING)
+                    matchmakingLogger.info(msg);
 
-            if (msg.startsWith(FUNC)) {
-                if (inLobby(userID)) {
-                    msg = msg.substring(3);
+                if (msg.startsWith(FUNC)) {
+                    if (inLobby(userID)) {
+                        msg = msg.substring(3);
 
-                    if (msg.length() < 3) {
-                        return;
-                    }
-                    switch (msg.substring(0, 3)) {
-                        case chatMsgKey:
-                            if (msg.length() > 3)
-                                chat.receiveMessage(otherPlayerName + ": " + msg.substring(3));
-                            break;
-                        case nameKey:
-                            if (msg.length() > 3) {
-                                otherPlayerName = msg.substring(3);
-                            }
-                            else {
-                                otherPlayerName = TEXT[9];
-                            }
-                            break;
-                        case availableCharKey:
-                            if (msg.length() > 3) {
-                                CoopMenu.screen.addAvailableCharacters(msg.substring(3).split(FUNC));
-                            }
-                            break;
-                        case selectedCharKey:
-                            if (msg.length() > 3) {
-                                CoopMenu.screen.setOtherPlayerChar(msg.substring(3));
-                            }
-                            break;
-                        case scrollPosKey:
-                            if (msg.length() > 3) {
-                                try {
-                                    CoopMenu.screen.setOtherPlayerScroll(Float.parseFloat(msg.substring(3)));
+                        if (msg.length() < 3) {
+                            return;
+                        }
+                        switch (msg.substring(0, 3)) {
+                            case chatMsgKey:
+                                if (msg.length() > 3)
+                                    chat.receiveMessage(otherPlayerName + ": " + msg.substring(3));
+                                break;
+                            case nameKey:
+                                if (msg.length() > 3) {
+                                    otherPlayerName = msg.substring(3);
                                 }
-                                catch (NumberFormatException e) {
-                                    matchmakingLogger.error("Failed to parse float value.");
+                                else {
+                                    otherPlayerName = TEXT[9];
                                 }
-                            }
-                            break;
-                        case endDataKey:
-                            CoopMenu.screen.enterLobby();
-                            break;
-                        case ascensionKey:
-                            String[] data = msg.substring(3).split(FUNC);
-                            if (data.length == 2) {
-                                try {
-                                    CoopMenu.screen.setAscension(data[0].equals(metadataTrue), Integer.parseInt(data[1]));
+                                break;
+                            case availableCharKey:
+                                if (msg.length() > 3) {
+                                    CoopMenu.screen.addAvailableCharacters(msg.substring(3).split(FUNC));
                                 }
-                                catch (NumberFormatException e) {
-                                    matchmakingLogger.error("Failed to parse Ascension level.");
+                                break;
+                            case selectedCharKey:
+                                if (msg.length() > 3) {
+                                    CoopMenu.screen.setOtherPlayerChar(msg.substring(3));
                                 }
-                                catch (Exception ignored) { }
-                            }
-                            break;
-                        case embarkKey:
-                            if (msg.length() > 3) {
-                                CoopMenu.screen.subEmbark();
-                                CoopMenu.screen.setPlayerChar(msg.substring(3));
-                            }
-                            break;
-                        default:
-                            matchmakingLogger.info("Unknown func msg key \"" + msg.substring(0, 3) + "\"");
-                            break;
+                                break;
+                            case scrollPosKey:
+                                if (msg.length() > 3) {
+                                    try {
+                                        CoopMenu.screen.setOtherPlayerScroll(Float.parseFloat(msg.substring(3)));
+                                    }
+                                    catch (NumberFormatException e) {
+                                        matchmakingLogger.error("Failed to parse float value.");
+                                    }
+                                }
+                                break;
+                            case endDataKey:
+                                matchmakingLogger.info("All data received.");
+                                CoopMenu.screen.enterLobby();
+                                break;
+                            case ascensionKey:
+                                String[] data = msg.substring(3).split(FUNC);
+                                if (data.length == 2) {
+                                    try {
+                                        CoopMenu.screen.setAscension(data[0].equals(metadataTrue), Integer.parseInt(data[1]));
+                                    }
+                                    catch (NumberFormatException e) {
+                                        matchmakingLogger.error("Failed to parse Ascension level.");
+                                    }
+                                    catch (Exception e) {
+                                        GeneralUtils.logStackTrace(matchmakingLogger, e);
+                                    }
+                                }
+                                break;
+                            case embarkKey:
+                                //When that embark button gets clicked, whatever the host thinks your character is, is what you're getting.
+                                if (msg.length() > 3) {
+                                    CoopMenu.screen.subEmbark();
+                                    CoopMenu.screen.setPlayerChar(msg.substring(3));
+                                }
+                                break;
+                            default:
+                                matchmakingLogger.info("Unknown func msg key \"" + msg.substring(0, 3) + "\"");
+                                break;
+                        }
                     }
                 }
             }
-        }
-        catch (Exception e)
-        {
-            matchmakingLogger.error(e.getMessage());
+            catch (Exception e)
+            {
+                matchmakingLogger.error(e.getMessage());
+            }
         }
     }
 
@@ -603,20 +632,24 @@ public class Matchmaking implements SteamMatchmakingCallback {
         }
     }
 
-    public static String generateModList()
+    private static String modlist = null;
+    public static String getModList()
     {
-        StringBuilder sb = new StringBuilder();
-        ArrayList<String> modData = new ArrayList<>();
-        for (ModInfo m : Loader.MODINFOS)
-        {
-            modData.add(m.ID + ":" + m.ModVersion.toString());
+        if (modlist == null) {
+            StringBuilder sb = new StringBuilder();
+            ArrayList<String> modData = new ArrayList<>();
+            for (ModInfo m : Loader.MODINFOS)
+            {
+                modData.add(m.ID + ":" + m.ModVersion.toString());
+            }
+            modData.sort(String::compareTo);
+            for (String s : modData)
+            {
+                sb.append(s).append("|");
+            }
+            modlist = sb.toString();
         }
-        modData.sort(String::compareTo);
-        for (String s : modData)
-        {
-            sb.append(s).append("|");
-        }
-        return sb.toString().trim();
+        return modlist;
     }
     //Should only be called by host.
     private static void sendLobbyInfo() {
