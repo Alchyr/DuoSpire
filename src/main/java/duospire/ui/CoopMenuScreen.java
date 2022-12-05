@@ -7,6 +7,7 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.evacipated.cardcrawl.modthespire.lib.SpireEnum;
+import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.core.Settings;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
@@ -22,6 +23,8 @@ import com.megacrit.cardcrawl.screens.mainMenu.MenuCancelButton;
 import com.megacrit.cardcrawl.screens.mainMenu.ScrollBar;
 import com.megacrit.cardcrawl.screens.mainMenu.ScrollBarListener;
 import duospire.DuoSpire;
+import duospire.player.CoopPlayer;
+import duospire.statics.Players;
 import duospire.networking.gameplay.P2P;
 import duospire.networking.matchmaking.Matchmaking;
 import duospire.util.TextureLoader;
@@ -66,7 +69,7 @@ public class CoopMenuScreen {
     private static final int IN_LOBBY = 2;
     private static final int ESTABLISH_P2P = 3;
     private static final int SETUP_GAME = 4;
-    private static final int EMBARK = 5;
+    private static final int GAMEPLAY = 5;
 
     //UI
     public MenuCancelButton button = new MenuCancelButton();
@@ -82,7 +85,7 @@ public class CoopMenuScreen {
     private final CharSelectArea leftSelect = new CharSelectArea(false), rightSelect = new CharSelectArea(true);
     private CharSelectArea currentProcessing = null;
 
-    private Button embarkButton;
+    private final Button embarkButton;
 
     private static final Color statusMsgColor = Color.WHITE.cpy();
     private String statusMsg = "";
@@ -145,8 +148,8 @@ public class CoopMenuScreen {
             if (leftSelect.selected != null && rightSelect.selected != null) {
                 this.button.hide();
 
-                Matchmaking.sendMessage(Matchmaking.FUNC + embarkKey + getOtherChar());
-                Matchmaking.sendSelectedChar(getLocalChar());
+                Matchmaking.sendMessage(Matchmaking.FUNC + embarkKey + getOtherCharString());
+                Matchmaking.sendSelectedChar(getLocalCharString());
                 Matchmaking.lockLobby();
                 mode = ESTABLISH_P2P;
                 statusMsg = TEXT[2];
@@ -162,7 +165,7 @@ public class CoopMenuScreen {
     }
     public void finishEmbark() {
         if (Matchmaking.otherPlayer != null && Matchmaking.inLobby(Matchmaking.otherPlayer)) {
-            mode = EMBARK;
+            mode = GAMEPLAY;
 
             CardCrawlGame.mainMenuScreen.isFadingOut = true;
             CardCrawlGame.mainMenuScreen.fadeOutMusic();
@@ -183,6 +186,10 @@ public class CoopMenuScreen {
 
         //MultiplayerHelper.sendP2PString("start_game");
         //MultiplayerHelper.sendP2PMessage("Starting game...");
+        matchmakingLogger.info("Sent dungeon info:");
+        for (String s : confirmData) {
+            matchmakingLogger.info(" - " + s);
+        }
     }
     public void receiveConfirm(String data) {
         if (confirmData.remove(data)) {
@@ -244,8 +251,10 @@ public class CoopMenuScreen {
                     statusMsg = TEXT[3];
                     //Send data for game to ensure everything is consistent.
 
+                    Players.setCoopPlayers(isHost ? 0 : 1, getLeftPlayerInstance(), getRightPlayerInstance());
+                    CardCrawlGame.chosenCharacter = CoopPlayer.Enum.coopPlayer;
                     if (isHost) {
-                        DuoSpire.setupDungeon(); //TODO - Set up players
+                        DuoSpire.setupDungeon();
                         sendDungeonInfo();
                     }
                 }
@@ -257,8 +266,10 @@ public class CoopMenuScreen {
                         statusMsg = TEXT[4];
                         CardCrawlGame.mainMenuScreen.isFadingOut = true;
                         CardCrawlGame.mainMenuScreen.fadeOutMusic();
+                        //See CardCrawlGame line 790 for code that embarks upon fade out completion
+                        //TODO - Set up players
                         P2P.sendCommand(P2P.START_RUN);
-                        mode = EMBARK;
+                        mode = GAMEPLAY;
                     }
                 } //Non-host player is just waiting for a "start game" message from host
                 break;
@@ -527,7 +538,20 @@ public class CoopMenuScreen {
         (isHost ? rightSelect : leftSelect).scrolledUsingBar(percent);
     }
 
-    public String getLocalChar() {
+    public AbstractPlayer getLeftPlayerInstance() {
+        if (leftSelect.selected == null)
+            return null;
+
+        return null;
+    }
+    public AbstractPlayer getRightPlayerInstance() {
+        if (rightSelect.selected == null)
+            return null;
+
+        return Players.getAltPlayer(rightSelect.selected.c);
+    }
+
+    public String getLocalCharString() {
         if (isHost) {
             return leftSelect.selected != null ? leftSelect.selected.c.chosenClass.name() : "null";
         }
@@ -535,7 +559,7 @@ public class CoopMenuScreen {
             return rightSelect.selected != null ? rightSelect.selected.c.chosenClass.name() : "null";
         }
     }
-    public String getOtherChar() {
+    public String getOtherCharString() {
         if (isHost) {
             return rightSelect.selected != null ? rightSelect.selected.c.chosenClass.name() : "null";
         }

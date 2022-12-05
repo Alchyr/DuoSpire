@@ -9,8 +9,8 @@
         <Steam.path>C:/Program Files (x86)/steam/steamapps</Steam.path>
 
         <!--These don't have to be up to date, it's just nice if they are.-->
-        <SlayTheSpire.version>03-07-2022</SlayTheSpire.version>
-        <ModTheSpire.version>3.29.0</ModTheSpire.version>
+        <SlayTheSpire.version>10-04-2022</SlayTheSpire.version>
+        <ModTheSpire.version>3.30.0</ModTheSpire.version>
 
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
@@ -122,6 +122,7 @@
                             <target>
                                 <!--This puts a copy of your mod's jar file into the SlayTheSpire mods folder so it will be loaded.-->
                                 <copy file="target/${project.artifactId}.jar" tofile="${Steam.path}/common/SlayTheSpire/mods/${project.artifactId}.jar"/>
+                                <copy file="target/${project.artifactId}.jar" tofile="G:/My Drive/Slay the Spire/DuoSpire/${project.artifactId}.jar"/>
                             </target>
                         </configuration>
                         <goals>

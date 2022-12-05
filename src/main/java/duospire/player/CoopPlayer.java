@@ -5,17 +5,23 @@ import basemod.animations.AbstractAnimation;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.evacipated.cardcrawl.modthespire.lib.SpireEnum;
 import com.megacrit.cardcrawl.actions.AbstractGameAction;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.cards.colorless.Madness;
 import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.helpers.FontHelper;
 import com.megacrit.cardcrawl.screens.CharSelectInfo;
-import duospire.alt.Statics;
+import duospire.statics.Players;
 
 import java.util.ArrayList;
 
 public class CoopPlayer extends CustomPlayer {
+    public static class Enum {
+        @SpireEnum
+        public static PlayerClass coopPlayer;
+    }
+
     public CoopPlayer() {
         super("", null, null, new AbstractAnimation() {
             @Override
@@ -46,20 +52,20 @@ public class CoopPlayer extends CustomPlayer {
 
     @Override
     public void update() {
-        Statics.players[0].update();
-        Statics.players[1].update();
+        Players.players[0].update();
+        Players.players[1].update();
     }
 
     @Override
     public void render(SpriteBatch sb) {
-        Statics.players[0].render(sb);
-        Statics.players[1].render(sb);
+        Players.players[0].render(sb);
+        Players.players[1].render(sb);
     }
 
     @Override
     public void dispose() {
-        Statics.players[0].dispose();
-        Statics.players[1].dispose();
+        Players.players[0].dispose();
+        Players.players[1].dispose();
     }
 
     //These probably shouldn't ever be called but are implemented anyways

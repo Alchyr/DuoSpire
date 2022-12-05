@@ -9,6 +9,7 @@ import com.evacipated.cardcrawl.modthespire.patcher.PatchingException;
 import com.megacrit.cardcrawl.actions.AbstractGameAction;
 import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
+import com.megacrit.cardcrawl.screens.SingleCardViewPopup;
 import duospire.patches.gen.BaseModification;
 import duospire.patches.gen.CharacterColorEnumFields;
 import duospire.generation.MultiplayerGeneration;
@@ -59,6 +60,7 @@ public class RawPatchTrigger {
         //Testing bytecode translator
         BytecodeTranslator translator = new BytecodeTranslator(pool.get(RawPatchTrigger.class.getName()).getDeclaredMethod("BytecodeTest"));
         System.out.println(translator.translate());
+
     }
 
     public static void BytecodeTest() {

@@ -1,11 +1,11 @@
 package duospire.cards;
 
 import basemod.abstracts.CustomCard;
-import duospire.DuoSpire;
-import duospire.util.CardInfo;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.localization.CardStrings;
+import duospire.DuoSpire;
+import duospire.util.CardInfo;
 
 import static duospire.DuoSpire.makeID;
 import static duospire.util.TextureLoader.getCardTextureString;

@@ -1,19 +1,16 @@
 package duospire.generation;
 
 import basemod.BaseMod;
-import basemod.Pair;
 import basemod.abstracts.CustomCard;
 import com.megacrit.cardcrawl.actions.AbstractGameAction;
-import com.megacrit.cardcrawl.actions.common.DamageAction;
 import com.megacrit.cardcrawl.cards.AbstractCard;
 import com.megacrit.cardcrawl.characters.AbstractPlayer;
 import com.megacrit.cardcrawl.core.AbstractCreature;
-import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.monsters.AbstractMonster;
 import com.megacrit.cardcrawl.unlock.UnlockTracker;
 import duospire.DuoSpire;
 import duospire.patches.gen.EnumPlace;
-import duospire.util.NotDeprecatedFilter;
+import duospire.statics.Players;
 import javassist.*;
 import javassist.bytecode.*;
 import javassist.expr.*;
@@ -108,6 +105,7 @@ public class MultiplayerGeneration {
         noReplace.add(AbstractCard.class.getName());
         noReplace.add(AbstractMonster.class.getName());
         noReplace.add(AbstractCreature.class.getName());
+        noReplace.add(AbstractPlayer.class.getName());
         noReplace.add(CustomCard.class.getName());
         noReplace.add(AbstractGameAction.class.getName());
         noReplace.add(Object.class.getName()); //hopefully nothing gets this far.
@@ -125,12 +123,13 @@ public class MultiplayerGeneration {
 
     private static final List<CtClass> generated = new ArrayList<>();
     private static final List<CtClass> generatedCharacters = new ArrayList<>();
+        private static final Map<CtClass, CtClass> originCharacters = new HashMap<>();
     private static final List<CtClass> generatedCards = new ArrayList<>(); //Cards *only* go in this list as they need specific modifications.
     private static final List<CtClass> generatedMonsters = new ArrayList<>(); //Cards *only* go in this list as they need specific modifications.
 
     //private static CtClass ctAbstractCard = null;
 
-    public static void patch(ClassFinder finder, ClassPool pool) throws NotFoundException, BadBytecode {
+    public static void patch(ClassFinder finder, ClassPool pool) throws NotFoundException, BadBytecode, CannotCompileException {
         System.out.println("Generating multiplayer content variants.");
 
         classReplacements.clear();
@@ -177,7 +176,7 @@ public class MultiplayerGeneration {
         ArrayList<ClassInfo> characterClasses = new ArrayList<>();
         finder.findClasses(characterClasses, characterFilter);
 
-        generator.generateClass(pool, pool.get(AbstractPlayer.class.getName()), generatedCharacters);
+        //generator.generateClass(pool, pool.get(AbstractPlayer.class.getName()), generatedCharacters);
         generator.generateClasses(pool, characterClasses, generatedCharacters);
 
         if (!generator.clean()) {
@@ -198,6 +197,7 @@ public class MultiplayerGeneration {
         cardAdjuster.adjust(generatedCards);
 
         registerCards(pool);
+        generateAltPlayerGetters(pool, characterClasses, generator);
 
         //BytecodeTranslator.translate(pool, "duospire.com.megacrit.cardcrawl.actions.common.DuoSpireDamageAction", "update");
     }
@@ -573,6 +573,64 @@ public class MultiplayerGeneration {
         } catch (NotFoundException | CannotCompileException e) {
             System.out.println("\t- Error occurred while attempted to generate card registration.");
             e.printStackTrace();
+        }
+    }
+
+    private static void generateAltPlayerGetters(ClassPool pool, List<ClassInfo> playerClasses, ClassGenerator generator) throws NotFoundException, CannotCompileException {
+        CtClass playerClass = pool.get(AbstractPlayer.class.getName());
+        CtClass[] empty = new CtClass[] {};
+
+        playerClass.addMethod(CtNewMethod.abstractMethod(playerClass, "getDuoSpireAltPlayer",
+                empty, empty, playerClass));
+
+        CtClass playerStaticClass = pool.getCtClass(Players.class.getName());
+        CtMethod getAltPlayer = playerStaticClass.getDeclaredMethod("getAltPlayer");
+
+        getAltPlayer.setBody(
+                "return $1.getDuoSpireAltPlayer();"
+        );
+
+        String genPlayer;
+        CtClass[] stringOnly = new CtClass[] { pool.get(String.class.getName()) };
+
+        for (ClassInfo info : playerClasses) {
+            playerClass = pool.get(info.getClassName());
+
+            CtClass replacement = generator.getReplacement(playerClass.getName());
+
+            if (replacement == null) {
+                System.out.println("\t- No replacement for player class " + playerClass.getName() + " found.");
+                continue;
+            }
+
+            CtConstructor[] constructors = replacement.getDeclaredConstructors();
+            genPlayer = null;
+            for (CtConstructor constructor : constructors) {
+                CtClass[] params = constructor.getParameterTypes();
+                if (Arrays.equals(params, empty)) {
+                    genPlayer = "new " + replacement.getName() + "()";
+                    break;
+                }
+                else if (Arrays.equals(params, stringOnly)) {
+                    genPlayer = "new " + replacement.getName() + "(name)";
+                }
+            }
+
+            if (genPlayer == null) {
+                System.out.println("\t- Unable to find valid constructor for player class " + playerClass.getName() + ".");
+                continue;
+            }
+
+            playerClass.addMethod(CtNewMethod.make(
+                    "public " + AbstractPlayer.class.getName() + " getDuoSpireAltPlayer() {" +
+                            "return " + genPlayer + ";" +
+                        "}",
+                    playerClass));
+            replacement.addMethod(CtNewMethod.make(
+                    "public " + AbstractPlayer.class.getName() + " getDuoSpireAltPlayer() {" +
+                            "return " + genPlayer + ";" +
+                            "}",
+                    replacement));
         }
     }
 }

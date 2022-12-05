@@ -184,7 +184,6 @@ public class Matchmaking implements SteamMatchmakingCallback {
     }
     public static void leave()
     {
-        isHost = false;
         otherPlayer = null;
         otherPlayerName = loadingName;
         if (currentLobbyID != null && matchmaking != null)
@@ -656,7 +655,7 @@ public class Matchmaking implements SteamMatchmakingCallback {
         sendStsName();
         sendAvailableCharacters();
         sendAscension(CoopMenu.screen.isAscensionMode, CoopMenu.screen.ascensionLevel);
-        sendMessage(FUNC + selectedCharKey + CoopMenu.screen.getLocalChar());
+        sendMessage(FUNC + selectedCharKey + CoopMenu.screen.getLocalCharString());
         sendMessage(FUNC + endDataKey);
     }
     public static void sendAscension(boolean isAscensionMode, int ascensionLevel) {

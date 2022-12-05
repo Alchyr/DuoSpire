@@ -166,7 +166,7 @@ public class P2P implements SteamNetworkingCallback {
 
         pingTimers.put(pingID, 0.0);
         sendPacket(defaultChannel);
-        p2pLogger.info("Sent ping " + pingID);
+        //p2pLogger.info("Sent ping " + pingID);
     }
 
     public static String sendCommand(String cmd) {
@@ -274,8 +274,8 @@ public class P2P implements SteamNetworkingCallback {
                 delay = respondPingID == NON_RESPONSE ? 0 : BAD_CONNECTION_TIME;
             ping.add(delay);
 
-            if (FULL_DEBUG_LOGGING)
-                p2pLogger.info("Received ping " + recPingID + " in response to ping " + respondPingID);
+            /*if (FULL_DEBUG_LOGGING)
+                p2pLogger.info("Received ping " + recPingID + " in response to ping " + respondPingID);*/
 
             if (recPingID > pingID) {
                 pingID = recPingID;

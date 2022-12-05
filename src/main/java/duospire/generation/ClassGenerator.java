@@ -42,6 +42,20 @@ public class ClassGenerator {
         }
     }
 
+
+    public CtClass getReplacement(Class<?> original) {
+        return classReplacements.get(original.getName());
+    }
+    public CtClass getReplacement(String originalName) {
+        return classReplacements.get(originalName);
+    }
+
+
+
+
+
+    //Generation
+
     private boolean handled(CtClass clz) {
         return classReplacements.containsKey(clz.getName()) || noReplace.contains(clz.getName());
     }

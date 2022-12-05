@@ -3,6 +3,8 @@ package duospire;
 import basemod.BaseMod;
 import basemod.interfaces.*;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.utils.GdxRuntimeException;
 import com.megacrit.cardcrawl.core.CardCrawlGame;
 import com.megacrit.cardcrawl.dungeons.AbstractDungeon;
 import com.megacrit.cardcrawl.helpers.*;
@@ -36,6 +38,34 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+
+
+/*
+NOTES
+
+For co-op
+Two separate players
+basics of update/render are passed through a dummy player class
+
+All hooks/methods should be called individually, though.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ */
+
+
 
 @SpireInitializer
 public class DuoSpire implements
@@ -188,9 +218,14 @@ public class DuoSpire implements
             This results in the default localization being used for anything that might be missing.
             The same process is used to load keywords slightly below.
         */
-        loadLocalization(defaultLanguage);
+        loadLocalization(defaultLanguage); //no except catching for default localization, you better have at least one that works.
         if (!defaultLanguage.equals(getLangString())) {
-            loadLocalization(getLangString());
+            try {
+                loadLocalization(getLangString());
+            }
+            catch (GdxRuntimeException e) {
+                e.printStackTrace();
+            }
         }
     }
 
